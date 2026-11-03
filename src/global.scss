@@ -1,0 +1,516 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+@import '@ionic/angular/css/palettes/dark.system.css';
+/* ========================================== */
+/* CABECERA UNIVERSAL - TUTORÍAS ENTRE PARES  */
+/* ========================================== */
+/* ========================================== */
+/* CABECERA UNIVERSAL - TUTORÍAS ENTRE PARES  */
+/* ========================================== */
+.header-blanco {
+  --background: #ffffff;
+  --border-width: 0 !important; 
+  --padding-start: 20px; /* Un poco más de margen a la izquierda */
+  
+  /* 🌟 FORZAMOS A LA BARRA A SER MÁS ALTA PARA QUE EL LOGO QUEPA BIEN */
+  --min-height: 75px; 
+  display: flex;
+  align-items: center;
+}
+
+.logo-cabecera {
+  height: 75px; /* 🌟 Aumentamos drásticamente el tamaño del logo */
+  max-width: 250px; /* Evita que se estire demasiado si la pantalla es muy ancha */
+  object-fit: contain; /* Mantiene las proporciones perfectas sin deformarse */
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.linea-separadora {
+  height: 3px; /* Línea un poco más gruesa para que destaque */
+  background-color: #003366; 
+  width: 100%;
+  /* 🌟 Sombra pronunciada debajo de la línea para dar el efecto de que la cabecera está "flotando" sobre la página */
+  box-shadow: 0 4px 10px rgba(0, 51, 102, 0.15); 
+  position: relative;
+  z-index: 10; /* Asegura que la sombra se pinte por encima del contenido de abajo */
+}
+/* ========================================== */
+/* ESTILO PREMIUM PARA SELECTORES (BLINDAJE)  */
+/* ========================================== */
+
+/* Al poner 'ion-alert' antes de la clase, aumentamos la fuerza del código 
+   para vencer las reglas internas del Modo Oscuro */
+ion-alert.alerta-premium-gietaes {
+  
+  /* 1. VARIABLES GLOBALES FORZADAS AL MODO CLARO */
+  --background: #ffffff !important;
+  --ion-background-color: #ffffff !important;
+  --ion-text-color: #1e293b !important;
+  --ion-color-primary: #d97706 !important; /* El color dorado para los checks */
+  --backdrop-opacity: 0.6 !important;
+  color: #1e293b !important;
+
+  /* 2. ATACAMOS EL SHADOW DOM (Ionic Moderno) */
+  &::part(header) {
+    background-color: #f4f7f9 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 20px 15px 15px 15px !important;
+  }
+  
+  &::part(title) {
+    color: #003366 !important;
+    font-weight: 900 !important;
+    font-size: 1.25rem !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+  }
+  
+  &::part(button) {
+    color: #003366 !important;
+    font-weight: bold !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  /* 3. ATACAMOS EL LIGHT DOM (Textos internos y estructura) */
+  .alert-wrapper {
+    background-color: #ffffff !important;
+    border-radius: 20px !important;
+    box-shadow: 0 15px 40px rgba(0, 51, 102, 0.2) !important;
+  }
+  
+  .alert-checkbox-label {
+    color: #003366 !important; /* Fuerza las letras a azul oscuro/casi negro */
+    font-weight: 600 !important;
+    white-space: normal !important; /* Evita que los textos largos se corten */
+  }
+
+  /* El visto bueno (checkbox) cuando se selecciona */
+  [aria-checked="true"] .alert-checkbox-icon {
+    border-color: #EAB308 !important;
+    background-color: #003366 !important;
+  }
+}
+/* ========================================== */
+/* ESTILO PREMIUM PARA POPOVERS (MODALIDAD)   */
+/* ========================================== */
+
+ion-popover.popover-premium-gietaes {
+  
+  /* 1. Fondo principal del globo */
+  --background: #ffffff !important;
+  --ion-background-color: #ffffff !important;
+  --ion-text-color: #003366 !important;
+
+  /* 2. Damos forma al contenedor flotante */
+  &::part(content) {
+    border-radius: 15px !important;
+    box-shadow: 0 10px 30px rgba(0, 51, 102, 0.15) !important;
+    border: 1px solid #e2e8f0 !important;
+    overflow: hidden !important; /* Para que las esquinas no se salgan */
+  }
+
+  /* 3. Forzamos los elementos de la lista a ser blancos con letra oscura */
+  ion-item {
+    --background: #ffffff !important;
+    --color: #003366 !important;
+    --border-color: #f1f5f9 !important; /* Una línea divisoria muy suave */
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+  }
+
+  /* 4. Estilo del botón circular de selección (Radio Button) */
+  ion-radio {
+    --color: #cbd5e1 !important; /* Gris cuando no está marcado */
+    --color-checked: #EAB308 !important; /* Dorado institucional al marcarlo */
+  }
+}
+/* =======================================================
+   BLINDAJE DE COLORES CLAROS PARA COMPONENTES EMERGENTES
+   ======================================================= */
+
+/* 1. Estilo para los Popovers (Menús desplegables) */
+.popover-blanco {
+  /* 🌟 ESTO APAGA EL MODO OSCURO SOLO PARA ESTE MENÚ */
+  color-scheme: light !important; 
+  
+  --background: #ffffff !important;
+  --backdrop-opacity: 0.3 !important;
+  
+  ion-item {
+    --background: #ffffff !important;
+    --color: #0f172a !important; /* Azul muy oscuro casi negro */
+    font-weight: 500;
+  }
+
+  ion-item::part(native) {
+    color: #0f172a !important;
+  }
+
+  /* Color azul oscuro al hacer hover/clic en una opción */
+  ion-item::part(native):hover {
+    color: #003366 !important;
+    background: #f4f7f9 !important;
+  }
+}
+
+/* 2. Estilo para el Calendario (ion-datetime) */
+.calendario-gietaes {
+  /* 🌟 ESTO APAGA EL MODO OSCURO PARA EL CALENDARIO Y HACE VISIBLES LOS NÚMEROS */
+  color-scheme: light !important;
+
+  /* Fondos Obligatorios */
+  --background: #ffffff !important;
+  --background-rgb: 255,255,255 !important;
+  background: #ffffff !important;
+  
+  /* Textos Principales */
+  color: #0f172a !important;
+  --color: #0f172a !important;
+  --title-color: #003366 !important;
+  --ion-text-color: #0f172a !important;
+
+  /* Color principal GIETAES (Azul oscuro para selecciones y círculo) */
+  --ion-color-base: #003366 !important;
+  --ion-color-primary: #003366 !important;
+  --ion-color-primary-rgb: 0,51,102 !important;
+
+  /* Configuración del selector de la HORA */
+  --wheel-item-color: #0f172a !important; /* Números de la hora oscuros */
+  --wheel-fade-background-rgb: 255,255,255 !important;
+  --wheel-highlight-background: rgba(234, 179, 8, 0.25) !important; /* Cinta dorada */
+  
+  border-radius: 12px;
+}
+
+/* Forzar que los días del calendario sean negros */
+.calendario-gietaes::part(calendar-day) {
+  color: #0f172a;
+}
+
+/* Forzar los botones de Cancelar / Confirmar */
+.calendario-gietaes::part(cancel-button),
+.calendario-gietaes::part(confirm-button) {
+  color: #003366 !important;
+  font-weight: bold;
+}
+
+/* 3. Forzar el botón del calendario (donde se lee la fecha elegida) a ser claro */
+ion-datetime-button::part(native) {
+  background: #ffffff;
+  color: #003366;
+  border: 1px solid #cbd5e1;
+  font-weight: bold;
+} 
+/* ========================================================
+   🌟 POPOVER PREMIUM PARA ESTADOS DE TUTORÍA
+   ======================================================== */
+.popover-estado-gietaes {
+  --background: #ffffff !important;
+  --border-radius: 16px !important;
+  --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15) !important;
+  color-scheme: light !important;
+
+  .menu-estado-header {
+    background: #f8fafc;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+
+    .sub {
+      margin: 0;
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    h4 {
+      margin: 5px 0 0 0;
+      color: #003366;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+  }
+
+  .lista-estados {
+    background: #ffffff;
+    padding: 10px 0;
+
+    ion-item {
+      --background: transparent;
+      --background-hover: #f1f5f9;
+      font-weight: 700;
+      color: #334155;
+      font-size: 0.95rem;
+
+      .bolita {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        margin-right: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+
+        &.verde { background: #34d399; }
+        &.amarilla { background: #fde047; }
+        &.roja { background: #ef4444; }
+      }
+    }
+  }
+  /* 🌟 POPOVER PREMIUM GIETAES (Para Selects) */
+ion-popover.popover-premium-gietaes {
+  --background: #ffffff !important;
+  color-scheme: light !important;
+
+  &::part(content) {
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15) !important;
+  }
+
+  ion-item {
+    --background: #ffffff !important;
+    --color: #334155 !important;
+    font-weight: 600;
+  }
+
+  ion-radio {
+    --color: #cbd5e1 !important;
+    --color-checked: #EAB308 !important;
+  }
+}
+}
+/* 🌟 POPOVER PREMIUM GIETAES (Para Selects Simples y Múltiples) */
+ion-popover.popover-premium-gietaes {
+  --background: #ffffff !important;
+  color-scheme: light !important;
+
+  &::part(content) {
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15) !important;
+  }
+
+  ion-item {
+    --background: #ffffff !important;
+    --color: #334155 !important;
+    font-weight: 600;
+  }
+
+  /* Si es de selección única (Bolitas) */
+  ion-radio {
+    --color: #cbd5e1 !important;
+    --color-checked: #EAB308 !important;
+  }
+
+  /* Si es de selección múltiple (Cuadritos) */
+  ion-checkbox {
+    --checkbox-background-checked: #EAB308 !important;
+    --border-color-checked: #EAB308 !important;
+    --checkmark-color: #003366 !important;
+  }
+  
+   }
+/* ==============================================
+   🌟 MODAL GIETAES CENTRADO (GLOBAL)
+   ============================================== */
+ion-modal.modal-gietaes-centrado {
+  /* Forzamos el tamaño de tu tarjeta */
+  --width: 90%;
+  --max-width: 350px;
+  --height: auto;
+  --border-radius: 15px;
+  
+  /* Sombra elegante */
+  --box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Redondeamos las esquinas del contenedor interno */
+ion-modal.modal-gietaes-centrado::part(content) {
+  border-radius: 15px;
+  overflow: hidden;
+}
+/* ==============================================
+   🌟 TOAST PREMIUM GIETAES (AVISOS)
+   ============================================== */
+ion-toast.toast-premium-gietaes {
+  --border-radius: 12px;
+  --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  font-family: inherit;
+}
+
+ion-toast.toast-premium-gietaes::part(message) {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding-left: 5px;
+}
+
+ion-toast.toast-premium-gietaes::part(icon) {
+  font-size: 1.6rem;
+  margin-right: 10px;
+}
+
+/* 🌟 VARIACIONES DE COLOR Y BORDES CORREGIDOS */
+ion-toast.toast-exito {
+  --background: #ffffff;
+  --color: #0f172a;
+  --icon-color: #10b981; 
+}
+ion-toast.toast-exito::part(container) {
+  border-left: 6px solid #10b981;
+}
+
+ion-toast.toast-error {
+  --background: #ffffff;
+  --color: #0f172a;
+  --icon-color: #ef4444; 
+}
+ion-toast.toast-error::part(container) {
+  border-left: 6px solid #ef4444;
+}
+
+ion-toast.toast-advertencia {
+  --background: #003366; 
+  --color: #ffffff;
+  --icon-color: #EAB308; 
+}
+ion-toast.toast-advertencia::part(container) {
+  border-left: 6px solid #EAB308;
+}
+
+ion-toast.toast-info {
+  --background: #ffffff;
+  --color: #0f172a;
+  --icon-color: #3b82f6; 
+}
+ion-toast.toast-info::part(container) {
+  border-left: 6px solid #3b82f6;
+}
+
+/* ==============================================
+   🌟 ALERTA PREMIUM GIETAES (CONFIRMACIONES)
+   ============================================== */
+.alerta-premium-gietaes {
+  --background: #ffffff;
+  --backdrop-opacity: 0.6;
+  
+  /* Borde superior amarillo característico de tu diseño */
+  .alert-wrapper {
+    border-radius: 16px;
+    border-top: 5px solid #EAB308;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  }
+
+  .alert-title {
+    color: #003366;
+    font-weight: 900;
+    font-size: 1.25rem;
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .alert-message {
+    color: #475569;
+    font-size: 0.95rem;
+    text-align: center;
+    line-height: 1.4;
+    margin-top: 15px;
+  }
+
+  /* Estilos de botones */
+  .alert-button-group {
+    padding: 10px;
+  }
+
+  .btn-alerta-cancelar {
+    color: #94a3b8 !important; /* Gris discreto para cancelar */
+    font-weight: 700;
+  }
+
+  .btn-alerta-confirmar {
+    color: #003366 !important; /* Azul pesado para la acción principal */
+    font-weight: 900;
+  }
+}
+/* 🌟 FORZAR MODO CLARO EN DESPLEGABLES (POPOVERS) */
+.popover-claro {
+  --background: #ffffff;
+  --color: #003366;
+  
+  ion-item {
+    --background: #ffffff;
+    --color: #003366;
+    font-weight: 600;
+  }
+  
+  ion-radio {
+    --color-checked: #EAB308;
+  }
+  
+  ion-checkbox {
+    --checkbox-background-checked: #EAB308;
+    --border-color-checked: #EAB308;
+  }
+}
+/* ==============================================
+   🌟 MICRO-INTERACCIÓN: TABS ESTILO WHATSAPP
+   ============================================== */
+ion-tab-button {
+  /* 1. Preparamos una transición suave estilo "resorte" */
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s ease, border-radius 0.15s ease !important;
+  transform-origin: center center;
+}
+
+/* 2. El efecto MIENTRAS el dedo está aplastando la pantalla */
+ion-tab-button:active {
+  transform: scale(1.18) translateY(-2px) !important; /* Crece un 18% y sube un poquito */
+  background-color: rgba(0, 51, 102, 0.08) !important; /* Un círculo súper sutil de tu azul corporativo */
+  border-radius: 20px !important; /* Le da la forma de burbuja de tu imagen */
+  z-index: 100 !important; /* Asegura que la burbuja se ponga por encima del resto */
+}
+
+/* 3. (Opcional) Hacer que el icono también reaccione ligeramente */
+ion-tab-button:active ion-icon {
+  transform: scale(1.05);
+  transition: transform 0.1s ease;
+}
+body.scanner-active {
+  background: transparent !important;
+  --background: transparent !important;
+}

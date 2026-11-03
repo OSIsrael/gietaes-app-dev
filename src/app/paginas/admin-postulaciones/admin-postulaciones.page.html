@@ -1,0 +1,405 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="header-blanco">
+    
+    <!-- BOTÓN DE REGRESAR -->
+    <ion-buttons slot="start">
+      <ion-button (click)="regresar()">
+        <ion-icon name="arrow-back-outline" style="color: #003366;"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <!-- 🌟 LOGO A LA IZQUIERDA -->
+    <img src="assets/logo-tutorias.png" alt="Tutorías entre Pares" class="logo-cabecera" style="margin-left: -10px;" onerror="this.src='assets/logo-gietaes.png'">
+
+    <!-- 🌟 BOTONES AGRUPADOS A LA DERECHA -->
+    <ion-buttons slot="end" style="display: flex; align-items: center; gap: 8px; margin-right: 10px;">
+
+     <!-- 🌟 1. SELECTOR DE PANEL DINÁMICO (Con lógica infalible) -->
+      <div (click)="(tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE') ? abrirMenuRol($event) : null" 
+           [style.cursor]="(tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE') ? 'pointer' : 'default'" 
+           style="background: #f8fafc; border: 1.5px solid #003366; border-radius: 20px; padding: 4px 10px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
+        
+        <ion-icon [name]="iconoRolActual" style="color: #003366; font-size: 1.2rem; margin-right: 6px;"></ion-icon>
+        
+        <span style="color: #003366; font-size: 0.7rem; font-weight: 900; white-space: nowrap; margin-right: 4px; text-transform: uppercase;">
+          PANEL: {{ nombrePanelActual }}
+        </span>
+        
+        <!-- Muestra la flecha si tiene permisos extra o si está en un panel superior -->
+        <ion-icon *ngIf="tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE'" name="chevron-down-outline" style="color: #003366; font-size: 0.9rem;"></ion-icon>
+      </div>
+
+      <!-- 🌟 2. NOTIFICACIONES -->
+      <ion-button (click)="irANotificaciones()" style="position: relative; --background: rgba(0, 51, 102, 0.05); --border-radius: 50%; width: 42px; height: 42px;">
+        <ion-icon name="notifications-outline" style="color: #003366; font-size: 1.5rem;"></ion-icon>
+        <div *ngIf="hayNotificacionesSinLeer" style="position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; background-color: #EAB308; border-radius: 50%; border: 2px solid white;"></div>
+      </ion-button>
+
+      <!-- 🌟 3. PERFIL DESPLEGABLE -->
+      <ion-button (click)="abrirMenuPerfil($event)" style="--background: rgba(0, 51, 102, 0.05); --border-radius: 50%; width: 42px; height: 42px;">
+        <ion-icon name="person-circle-outline" style="color: #003366; font-size: 1.8rem;"></ion-icon>
+      </ion-button>
+
+    </ion-buttons>
+
+  </ion-toolbar>
+  <div class="linea-separadora"></div>
+</ion-header>
+
+<ion-content class="ion-padding fondo-admin">
+  
+  <h2 class="titulo-seccion">Bandeja de Postulaciones</h2>
+
+  <!-- 🌟 FILTRO OCULTO PARA COORDINADORES -->
+  <div class="contenedor-filtro" *ngIf="rolUsuario === 'ADMIN'">
+    <div class="filtro-icono">
+      <ion-icon name="filter-outline"></ion-icon>
+    </div>
+    <div class="filtro-contenido">
+      <label>Filtrar por Sede</label>
+      <ion-select [(ngModel)]="filtroSedePostulaciones" (ionChange)="cargarPostulaciones()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco' }">
+        <ion-select-option value="GLOBAL">Ver de las 3 Sedes (Global)</ion-select-option>
+        <ion-select-option value="CUENCA">Cuenca</ion-select-option>
+        <ion-select-option value="QUITO">Quito</ion-select-option>
+        <ion-select-option value="GUAYAQUIL">Guayaquil</ion-select-option>
+      </ion-select>
+    </div>
+  </div>
+
+  <!-- ESTADO VACÍO -->
+  <div *ngIf="postulacionesAgrupadas.length === 0" class="estado-vacio animate__animated animate__fadeIn">
+    <ion-icon name="checkmark-circle-outline"></ion-icon>
+    <h3>¡Bandeja vacía!</h3>
+    <p>No existen solicitudes pendientes para tu sede.</p>
+  </div>
+
+  <!-- 🌟 TARJETAS DE ESTUDIANTES COLAPSABLES (ACORDEÓN) -->
+  <div *ngFor="let estudiante of postulacionesAgrupadas" class="card-estudiante premium-card animate__animated animate__fadeInUp">
+    
+    <!-- 1. Cabecera CLICKABLE -->
+    <div class="card-header" (click)="estudiante.expandido = !estudiante.expandido" style="cursor: pointer; margin-bottom: 0;">
+      <div class="avatar-inicial">
+        <ion-icon name="person-outline"></ion-icon>
+      </div>
+      <div class="info-principal">
+        <h3 class="nombre-estudiante">{{ estudiante.nombre }}</h3>
+        <div class="tags-info">
+          <span class="badge-sede"><ion-icon name="location-outline"></ion-icon> {{ estudiante.sede }}</span>
+          <span class="badge-carrera">{{ estudiante.carrera }} (Ciclo {{ estudiante.ciclo }})</span>
+        </div>
+      </div>
+      <!-- Flecha dinámica -->
+      <div style="padding: 5px;">
+        <ion-icon [name]="estudiante.expandido ? 'chevron-up-outline' : 'chevron-down-outline'" style="font-size: 1.8rem; color: #003366; transition: 0.3s;"></ion-icon>
+      </div>
+    </div>
+
+    <!-- 🌟 CONTENIDO DESPLEGABLE -->
+    <div *ngIf="estudiante.expandido" class="animate__animated animate__fadeIn" style="margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
+      
+      <!-- 2. Información de Contacto y PDF -->
+      <div class="contacto-seccion">
+        <div class="datos-contacto">
+          <span><ion-icon name="call-outline"></ion-icon> {{ estudiante.celular }}</span>
+          <span><ion-icon name="mail-outline"></ion-icon> {{ estudiante.correo }}</span>
+        </div>
+        <ion-button *ngIf="estudiante.url_documento" class="btn-pdf" fill="outline" (click)="verDocumento(estudiante.url_documento)">
+          <ion-icon name="document-text-outline" slot="start"></ion-icon>
+          Récord Académico
+        </ion-button>
+      </div>
+
+      <!-- 3. Horarios Ofrecidos -->
+      <div class="seccion-interna">
+        <h4 class="subtitulo-seccion"><ion-icon name="time-outline"></ion-icon> Disponibilidad Ofrecida:</h4>
+        <div class="horarios-grid">
+          <div class="chip-horario" *ngFor="let hora of (estudiante.horarios | keyvalue)">
+            <span class="dia">{{ obtenerDia(hora.key) }}</span>
+            <span class="hora">{{ obtenerHora(hora.key) }}</span>
+            <span class="modalidad {{ hora.value }}">{{ hora.value }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Materias Solicitadas -->
+      <div class="seccion-interna sin-borde">
+        <h4 class="subtitulo-seccion"><ion-icon name="book-outline"></ion-icon> Materias Solicitadas:</h4>
+        
+        <div class="materia-row" *ngFor="let postMateria of estudiante.materias_postuladas">
+          <div class="materia-nombre">
+            {{ postMateria.materia_postulada }}
+          </div>
+          <div class="materia-acciones">
+            <ion-button class="btn-accion btn-rechazar" (click)="rechazar(postMateria)">
+              <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button class="btn-accion btn-aceptar" (click)="aceptar(postMateria)">
+              <ion-icon name="checkmark-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </div>
+
+    </div> <!-- FIN CONTENIDO DESPLEGABLE -->
+
+  </div>
+
+  <hr class="separador">
+  
+  <!-- ============================================= -->
+  <!-- 🌟 SECCIÓN SOS: TUTORÍAS QUE REQUIEREN ADMIN -->
+  <!-- ============================================= -->
+  <div *ngIf="tutoriasEnAlerta.length > 0" class="animate__animated animate__fadeInDown" style="margin-bottom: 30px;">
+    
+    <div style="background: #fee2e2; border-left: 6px solid #ef4444; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);">
+      <ion-icon name="warning" style="color: #ef4444; font-size: 2rem;"></ion-icon>
+      <div>
+        <h2 style="color: #991b1b; font-weight: 900; margin: 0; font-size: 1.1rem; text-transform: uppercase;">Atención Requerida</h2>
+        <p style="color: #b91c1c; font-size: 0.85rem; margin: 2px 0 0 0;">Estas tutorías fueron canceladas y requieren reasignación manual.</p>
+      </div>
+    </div>
+
+    <div *ngFor="let tutoria of tutoriasEnAlerta" class="card-alerta-roja">
+      <div class="header-alerta">
+        <span class="badge-materia">{{ tutoria.materia }}</span>
+        <span class="fecha-alerta">
+          <ion-icon name="calendar-outline"></ion-icon> 
+          {{ tutoria.dia || tutoria.dia_elegido }} | {{ tutoria.horas || tutoria.hora_elegida }}
+        </span>
+      </div>
+
+      <div class="cuerpo-alerta">
+        <p><strong>Estudiante afectado:</strong> {{ tutoria.nombreEstudiante }}</p>
+        <p><strong>Motivo:</strong> {{ tutoria.notas_admin }}</p>
+      </div>
+
+      <div class="acciones-alerta">
+        <ion-button fill="outline" color="success" size="small" (click)="contactarEstudianteAlerta(tutoria.celularEstudiante, tutoria.nombreEstudiante)" style="font-weight: bold;">
+          <ion-icon name="logo-whatsapp" slot="start"></ion-icon> Avisarle
+        </ion-button>
+        <ion-button color="danger" size="small" (click)="abrirModalReasignacion(tutoria)" style="font-weight: bold;">
+          <ion-icon name="build-outline" slot="start"></ion-icon> Gestionar Solución
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- 🌟 MODAL DE REASIGNACIÓN (LISTA DE TUTORES) -->
+  <!-- ============================================= -->
+  <ion-modal [isOpen]="mostrarModalReasignacion" (didDismiss)="mostrarModalReasignacion = false" class="modal-gietaes-centrado">
+    <ng-template>
+      <div style="display: flex; flex-direction: column; background: #ffffff; height: 100%;">
+        
+        <div class="modal-header" style="background: #ef4444; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="color: white; font-size: 1.1rem; font-weight: 900; margin: 0;">REASIGNAR TUTOR</h3>
+            <p style="color: #fecaca; margin: 2px 0 0 0; font-size: 0.8rem;">{{ tutoriaAReasignar?.materia }}</p>
+          </div>
+          <ion-icon name="close-outline" (click)="mostrarModalReasignacion = false" style="font-size: 1.8rem; color: white; cursor: pointer;"></ion-icon>
+        </div>
+
+        <div class="modal-body" style="overflow-y: auto; padding: 20px; flex-grow: 1; background: #f8fafc;">
+          
+          <div *ngIf="cargandoTutores" style="text-align: center; padding: 30px;">
+            <ion-spinner name="crescent" color="primary"></ion-spinner>
+            <p style="color: #64748b; font-size: 0.9rem;">Buscando tutores de {{ tutoriaAReasignar?.materia }}...</p>
+          </div>
+
+          <div *ngIf="!cargandoTutores && tutoresSugeridos.length === 0" style="text-align: center; padding: 30px;">
+            <ion-icon name="sad-outline" style="font-size: 3rem; color: #cbd5e1;"></ion-icon>
+            <p style="color: #64748b; font-weight: bold; margin-top: 10px;">No hay tutores disponibles</p>
+            <p style="color: #94a3b8; font-size: 0.85rem;">Ningún tutor imparte esta materia en la modalidad requerida.</p>
+          </div>
+
+          <ion-list *ngIf="!cargandoTutores && tutoresSugeridos.length > 0" style="background: transparent; padding: 0;">
+            <p style="margin: 0 0 15px 0; color: #475569; font-size: 0.85rem; font-weight: 600;">Selecciona un tutor para asignarle la clase:</p>
+            
+            <ion-item *ngFor="let tutor of tutoresSugeridos" lines="none" style="--background: white; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; --padding-start: 10px;">
+              <ion-icon name="person-circle-outline" slot="start" style="color: #003366; font-size: 2rem;"></ion-icon>
+              <ion-label>
+                <h2 style="color: #003366; font-weight: 800; font-size: 0.95rem;">{{ tutor.nombre }}</h2>
+                <p style="color: #64748b; font-size: 0.75rem;">Sede: {{ tutor.sede }}</p>
+              </ion-label>
+              <ion-button slot="end" (click)="asignarNuevoTutorManual(tutor)" style="--background: #10b981; font-weight: bold; font-size: 0.75rem;">
+                ASIGNAR
+              </ion-button>
+            </ion-item>
+          </ion-list>
+        </div>
+        
+        <div style="padding: 15px 20px; background: white; border-top: 1px solid #e2e8f0;">
+          <ion-button expand="block" fill="outline" color="danger" (click)="eliminarTutoriaHuerfana()" style="font-weight: 800; height: 45px;">
+            DAR DE BAJA (ELIMINAR)
+          </ion-button>
+        </div>
+
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ============================================= -->
+  <!-- MÉTRICAS Y CARTELERA -->
+  <!-- ============================================= -->
+
+  <h2 class="titulo-seccion">Métricas de Rendimiento</h2>
+  
+  <div class="contenedor-filtro" *ngIf="rolUsuario === 'ADMIN'">
+    <div class="filtro-icono"><ion-icon name="pie-chart-outline"></ion-icon></div>
+    <div class="filtro-contenido">
+      <label>Filtrar Estadísticas</label>
+      <ion-select [(ngModel)]="filtroSedeGraficas" (ionChange)="cargarEstadisticas()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco' }">
+        <ion-select-option value="GLOBAL">Rendimiento Global (Todas)</ion-select-option>
+        <ion-select-option value="CUENCA">Sede Cuenca</ion-select-option>
+        <ion-select-option value="QUITO">Sede Quito</ion-select-option>
+        <ion-select-option value="GUAYAQUIL">Sede Guayaquil</ion-select-option>
+      </ion-select>
+    </div>
+  </div>
+  
+  <div class="charts-container">
+    <div class="chart-card">
+      <h3 class="chart-title">Tutorías Impartidas</h3> <!-- 🌟 TÍTULO ACTUALIZADO -->
+      <div class="canvas-wrapper">
+        <canvas #barCanvas style="max-height: 240px; width: 100%;"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">Tutores Activos</h3> <!-- 🌟 TÍTULO ACTUALIZADO -->
+      <div class="canvas-wrapper pie-wrapper">
+        <canvas #pieCanvas style="max-height: 220px; width: 100%;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <hr class="separador">
+
+  <h2 class="titulo-seccion">Cartelera Digital</h2>
+  
+  <div class="formulario-eventos" style="margin-bottom: 40px;">
+    <div class="header-azul-gietaes">
+      <ion-icon name="megaphone-outline"></ion-icon>
+      REDACTAR COMUNICADO / TALLER
+    </div>
+
+    <div class="form-body">
+      <p class="form-descripcion">Completa los campos para notificar a los estudiantes. El anuncio aparecerá en su pantalla principal.</p>
+
+      <div class="input-group">
+        <label>Título del Comunicado</label>
+        <ion-input class="gietaes-input" [(ngModel)]="nuevoAnuncio.titulo" placeholder="Ej: Taller de Refuerzo de Programación"></ion-input>
+      </div>
+
+      <div class="input-group">
+        <label>Descripción detallada</label>
+        <ion-textarea class="gietaes-input" [(ngModel)]="nuevoAnuncio.descripcion" placeholder="Escribe los detalles del evento, link de zoom, aula, etc..." rows="4"></ion-textarea>
+      </div>
+
+      <div class="input-group">
+        <label>Fecha y Hora del Evento</label>
+        <div class="contenedor-fecha">
+          <ion-datetime-button datetime="calendario-evento"></ion-datetime-button>
+        </div>
+        
+        <ion-modal [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime 
+              class="calendario-gietaes"
+              id="calendario-evento" 
+              [(ngModel)]="nuevoAnuncio.fecha_evento" 
+              presentation="date-time" 
+              preferWheel="false"
+              showDefaultButtons="true"
+              cancelText="Cancelar"
+              doneText="Confirmar">
+            </ion-datetime>
+          </ng-template>
+        </ion-modal>
+      </div>
+
+      <div class="input-group">
+        <label>Destino (Segmentación)</label>
+        
+        <ion-select *ngIf="rolUsuario === 'ADMIN'" class="gietaes-input" [(ngModel)]="nuevoAnuncio.sede_destino" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco' }">
+          <ion-select-option value="GLOBAL">Todas las Sedes (Global)</ion-select-option>
+          <ion-select-option value="CUENCA">Solo Sede Cuenca</ion-select-option>
+          <ion-select-option value="QUITO">Solo Sede Quito</ion-select-option>
+          <ion-select-option value="GUAYAQUIL">Solo Sede Guayaquil</ion-select-option>
+        </ion-select>
+
+        <div *ngIf="rolUsuario === 'COORDINADOR'" class="gietaes-input" style="display: flex; align-items: center; background: #f1f5f9; color: #475569; padding: 12px; border-radius: 8px; font-weight: bold; border: 1px solid #cbd5e1;">
+          <ion-icon name="location-outline" style="margin-right: 8px; font-size: 1.2rem; color: #003366;"></ion-icon>
+          Notificación para Sede {{ sedeUsuario }}
+        </div>
+      </div>
+
+      <!-- 🌟 BOTÓN CON ESTADO DE CARGA Y BLOQUEO -->
+      <ion-button expand="block" class="btn-publicar mt-4" (click)="publicarAnuncio()" [disabled]="enviandoAnuncio">
+        <ion-icon slot="start" name="megaphone-outline"></ion-icon>
+        {{ enviandoAnuncio ? 'PUBLICANDO...' : 'EMITIR COMUNICADO OFICIAL' }}
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 🌟 POPOVER: CAMBIO DE PANEL -->
+  <!-- ========================================== -->
+  <ion-popover [isOpen]="menuRolAbierto" [event]="eventoRol" (didDismiss)="menuRolAbierto = false" mode="ios" style="--background: #ffffff; --width: 220px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
+    <ng-template>
+      <ion-content class="ion-padding-vertical" style="--background: #ffffff;">
+        <p style="margin: 0 15px 10px 15px; font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Ir a panel:</p>
+        <ion-list lines="none" style="background: transparent;">
+          
+          <!-- 🌟 ESTUDIANTE: Siempre visible para todos -->
+          <ion-item button (click)="irAPanel('/tabs/horarios', 'ESTUDIANTE')" style="--background: transparent;">
+            <ion-icon name="school-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Estudiante</ion-label>
+          </ion-item>
+          
+          <!-- 🌟 TUTOR: Siempre visible si tiene el permiso -->
+          <ion-item button (click)="irAPanel('/tabs-tutor/tutorias', 'TUTOR')" *ngIf="tienePanelTutor" style="--background: transparent;">
+            <ion-icon name="briefcase-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Tutor</ion-label>
+          </ion-item>
+          
+          <!-- 🌟 COORDINACIÓN: Siempre visible si es Admin o Coordinador -->
+          <ion-item button (click)="irAPanel('/admin-postulaciones', 'COORDINADOR')" *ngIf="tienePanelAdmin" style="--background: transparent;">
+            <ion-icon name="shield-checkmark-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Coordinación</ion-label>
+          </ion-item>
+
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-popover>
+
+  <!-- ========================================== -->
+  <!-- 🌟 POPOVER: PERFIL Y OPCIONES -->
+  <!-- ========================================== -->
+  <ion-popover [isOpen]="menuPerfilAbierto" [event]="eventoPerfil" (didDismiss)="menuPerfilAbierto = false" mode="ios" style="--background: #ffffff; --width: 280px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
+    <ng-template>
+      <ion-content style="--background: #ffffff;">
+        
+        <div style="background: #f8fafc; padding: 15px; border-bottom: 1px solid #e2e8f0; margin-bottom: 5px;">
+          <p style="margin: 0; font-weight: 900; color: #003366; font-size: 0.95rem; line-height: 1.2;">{{ nombreUsuario || 'ADMINISTRADOR' }}</p>
+          <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.75rem;">{{ correoUsuario }}</p>
+        </div>
+
+        <ion-list lines="none" style="background: transparent; padding-bottom: 10px;">
+          <ion-item button (click)="irAPerfil()" style="--background: transparent;">
+            <ion-icon name="settings-outline" slot="start" style="color: #475569;"></ion-icon>
+            <ion-label style="font-weight: 600; color: #475569;">Mi Perfil</ion-label>
+          </ion-item>
+          
+          <ion-item button (click)="cerrarSesion()" style="--background: transparent;">
+            <ion-icon name="log-out-outline" slot="start" style="color: #ef4444;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #ef4444;">Cerrar Sesión</ion-label>
+          </ion-item>
+        </ion-list>
+
+      </ion-content>
+    </ng-template>
+  </ion-popover>
+
+</ion-content>

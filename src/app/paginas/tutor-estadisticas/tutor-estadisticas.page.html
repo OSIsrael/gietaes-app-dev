@@ -1,0 +1,257 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="header-blanco">
+    
+    <img src="assets/logo-tutorias.png" alt="Tutorías entre Pares" class="logo-cabecera" slot="start" onerror="this.src='assets/logo-gietaes.png'">
+
+    <ion-buttons slot="end" style="display: flex; align-items: center; gap: 8px; margin-right: 10px;">
+      
+      <!-- 🌟 SELECTOR DE PANEL DINÁMICO -->
+      <div (click)="(tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE') ? abrirMenuRol($event) : null" 
+           [style.cursor]="(tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE') ? 'pointer' : 'default'" 
+           style="background: #f8fafc; border: 1.5px solid #003366; border-radius: 20px; padding: 4px 10px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
+        <ion-icon [name]="iconoRolActual" style="color: #003366; font-size: 1.2rem; margin-right: 6px;"></ion-icon>
+        <span style="color: #003366; font-size: 0.7rem; font-weight: 900; white-space: nowrap; margin-right: 4px; text-transform: uppercase;">
+          PANEL: {{ nombrePanelActual }}
+        </span>
+        <ion-icon *ngIf="tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE'" name="chevron-down-outline" style="color: #003366; font-size: 0.9rem;"></ion-icon>
+      </div>
+
+      <!-- NOTIFICACIONES -->
+      <ion-button (click)="irANotificaciones()" style="position: relative; --background: rgba(0, 51, 102, 0.05); --border-radius: 50%; width: 42px; height: 42px;">
+        <ion-icon name="notifications-outline" style="color: #003366; font-size: 1.5rem;"></ion-icon>
+        <div *ngIf="hayNotificacionesSinLeer" style="position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; background-color: #EAB308; border-radius: 50%; border: 2px solid white;"></div>
+      </ion-button>
+
+      <!-- PERFIL DESPLEGABLE -->
+      <ion-button (click)="abrirMenuPerfil($event)" style="--background: rgba(0, 51, 102, 0.05); --border-radius: 50%; width: 42px; height: 42px;">
+        <ion-icon name="person-circle-outline" style="color: #003366; font-size: 1.8rem;"></ion-icon>
+      </ion-button>
+
+    </ion-buttons>
+
+  </ion-toolbar>
+  <div class="linea-separadora"></div>
+</ion-header>
+<ion-content class="fondo-app">
+  
+  <div class="ion-padding ion-text-center contenedor-perfil" style="margin-top: 30px;">
+    <div class="usuario-fila">
+      <ion-icon name="person-circle-outline" class="icono-avatar"></ion-icon>
+      <div class="texto-usuario">
+        <h2>{{ usuario.nombre }}</h2>
+        
+        <p style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; font-weight: bold; color: #003366;">
+          <ion-icon name="school-outline"></ion-icon> SEDE: {{ usuario.sede }}
+        </p>
+        <p style="font-size: 0.8rem; color: #666; margin-top: 8px; font-weight: bold; text-transform: uppercase; background: rgba(0,0,0,0.05); padding: 4px 10px; border-radius: 6px; display: inline-block;">
+          Rol: {{ rolUsuario }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🌟 SELECTOR DINÁMICO DE PERIODO -->
+  <div style="padding: 0 15px; margin-bottom: 25px;">
+    <ion-segment [(ngModel)]="filtroPeriodo" (ionChange)="cargarEstadisticas()" mode="ios" style="background: #e2e8f0; border-radius: 10px; padding: 4px;">
+      <ion-segment-button value="ACTUAL" style="--color: #64748b; --color-checked: #ffffff; --indicator-color: #003366;">
+        <ion-label style="font-weight: 800; font-size: 0.8rem; letter-spacing: 0.5px;">PERIODO {{ periodoActualApp }}</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="HISTORICO" style="--color: #64748b; --color-checked: #ffffff; --indicator-color: #003366;">
+        <ion-label style="font-weight: 800; font-size: 0.8rem; letter-spacing: 0.5px;">HISTÓRICO</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </div>
+
+  <div class="ion-padding animate__animated animate__fadeIn">
+    <h3 class="subtitulo-seccion"><ion-icon name="bar-chart-outline"></ion-icon> Mi Dashboard de Rendimiento</h3>
+    
+    <ion-grid class="ion-no-padding mt-3">
+      <ion-row>
+        <ion-col size="6" class="stat-box right-border">
+          <h1 class="stat-number">{{ totalClasesDadas }}</h1>
+          <p class="stat-label">Tutorías<br>Impartidas</p>
+        </ion-col>
+        <ion-col size="6" class="stat-box">
+          <h1 class="stat-number">{{ totalAlumnosAtendidos }}</h1>
+          <p class="stat-label">Estudiantes<br>Atendidos</p>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+
+    <div class="chart-card mt-4">
+      <h3 class="chart-title">Tutorías por Materia</h3>
+      <div class="canvas-wrapper">
+        <canvas #barCanvas style="max-height: 240px; width: 100%;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🌟 MENÚ FLOTANTE ACTUALIZADO -->
+  <div class="fab-container">
+    <div class="fab-menu" *ngIf="menuAbierto">
+      
+      <!-- NUEVO BOTÓN PARA CAMBIAR HORARIO -->
+      <button class="fab-item" (click)="abrirModalHorarios()">
+        CAMBIAR HORARIOS <ion-icon name="time-outline"></ion-icon>
+      </button>
+
+      <!-- BOTÓN PARA INCREMENTO -->
+      <button class="fab-item" (click)="abrirModalMaterias()">
+        AÑADIR MATERIAS <ion-icon name="add-circle-outline"></ion-icon>
+      </button>
+
+    </div>
+    
+    <button class="fab-amarillo" (click)="toggleMenu()">
+      <ion-icon name="settings-outline"></ion-icon>
+    </button>
+  </div>
+
+  <!-- 🌟 MODAL DE INCREMENTO DE MATERIAS -->
+  <div class="overlay-modal animate__animated animate__fadeIn" *ngIf="mostrarModalMaterias">
+    <div class="modal-premium animate__animated animate__zoomIn">
+      <div class="modal-header">
+        <ion-icon name="book-outline"></ion-icon>
+        <h3>INCREMENTO DE MATERIAS</h3>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Selecciona qué materias nuevas de tu carrera deseas empezar a impartir.</p>
+        <div *ngIf="cargandoMaterias" class="cargando-box">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p style="margin-top: 5px;">Cargando catálogo...</p>
+        </div>
+        <div *ngIf="!cargandoMaterias && materiasDisponibles.length > 0" class="input-moderno mb-3">
+          <ion-select multiple="true" [(ngModel)]="materiasSeleccionadas" placeholder="Selecciona materias..." interface="popover" [interfaceOptions]="{ cssClass: 'popover-premium-gietaes' }" style="width: 100%;">
+            <ion-select-option *ngFor="let m of materiasDisponibles" [value]="m">{{m}}</ion-select-option>
+          </ion-select>
+        </div>
+        <div *ngIf="!cargandoMaterias && materiasDisponibles.length === 0" class="alerta-error">
+          <ion-icon name="warning-outline"></ion-icon>
+          No hay materias disponibles en ciclos inferiores a tu ciclo actual.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <ion-button fill="outline" class="btn-cancelar" (click)="mostrarModalMaterias = false" [disabled]="cargandoMaterias">CANCELAR</ion-button>
+        <ion-button class="btn-enviar" (click)="enviarSolicitudMaterias()" [disabled]="cargandoMaterias || materiasSeleccionadas.length === 0">ENVIAR SOLICITUD</ion-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🌟 NUEVO MODAL DE CAMBIO DE HORARIO (AMPLIADO Y CENTRADO) -->
+  <div class="overlay-modal animate__animated animate__fadeIn" *ngIf="mostrarModalHorarios">
+    
+    <div class="modal-premium animate__animated animate__zoomIn" style="width: 95%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column;">
+      
+      <div class="modal-header" style="flex-shrink: 0;">
+        <ion-icon name="time-outline"></ion-icon>
+        <h3>CAMBIAR HORARIO</h3>
+      </div>
+
+      <div class="modal-body" style="padding: 20px; text-align: left; overflow-y: auto; flex-grow: 1;">
+        <p class="modal-desc" style="margin-bottom: 10px; font-size: 0.95rem; text-align: center;">
+          Modifica tu disponibilidad. Toca los cuadros para agregar o quitar horas.
+        </p>
+
+        <!-- Botones de Modalidad (Presencial, Virtual, Ambas) -->
+        <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
+          <div class="btn-modalidad" [class.activo]="modalidadGlobal === 'PRESENCIAL'" (click)="seleccionarModalidadGlobal('PRESENCIAL')">Presencial</div>
+          <div class="btn-modalidad" [class.activo]="modalidadGlobal === 'VIRTUAL'" (click)="seleccionarModalidadGlobal('VIRTUAL')">Virtual</div>
+          <div class="btn-modalidad" [class.activo]="modalidadGlobal === 'AMBAS'" (click)="seleccionarModalidadGlobal('AMBAS')">Ambas</div>
+        </div>
+
+        <p style="font-size: 0.85rem; color: #d97706; font-weight: bold; margin: 15px 0 15px 0; text-align: center;">
+          * Sábados obligatoriamente VIRTUAL (Máximo hasta las 13:00).
+        </p>
+
+        <!-- Cuadrícula de Horarios con Scroll horizontal -->
+        <div class="calendario-scroll">
+          <table class="tabla-horarios">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th *ngFor="let dia of diassemana">{{ dia.substring(0,3) }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let franja of franjasHorarias">
+                <td class="columna-hora" style="font-size: 0.75rem; font-weight: bold;">{{ franja }}</td>
+                <td *ngFor="let dia of diassemana" 
+                    [class.seleccionado]="horarioSeleccionado[dia + '-' + franja]"
+                    [class.bloqueado]="esBloqueDeshabilitado(dia, franja)"
+                    (click)="seleccionarBloque(dia, franja)">
+                  <div class="celda-contenido">
+                    <span *ngIf="horarioSeleccionado[dia + '-' + franja]" class="texto-modalidad">
+                      {{ horarioSeleccionado[dia + '-' + franja] === 'PRESENCIAL' ? 'P' : (horarioSeleccionado[dia + '-' + franja] === 'VIRTUAL' ? 'V' : 'P/V') }}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="flex-shrink: 0;">
+        <ion-button fill="outline" class="btn-cancelar" (click)="mostrarModalHorarios = false" [disabled]="guardandoHorario">CANCELAR</ion-button>
+        <ion-button class="btn-enviar" (click)="guardarNuevoHorario()" [disabled]="guardandoHorario">GUARDAR HORARIO</ion-button>
+      </div>
+
+    </div>
+  </div>
+<!-- ========================================== -->
+  <!-- 🌟 POPOVER: CAMBIO DE PANEL -->
+  <!-- ========================================== -->
+  <ion-popover [isOpen]="menuRolAbierto" [event]="eventoRol" (didDismiss)="menuRolAbierto = false" mode="ios" style="--background: #ffffff; --width: 220px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
+    <ng-template>
+      <ion-content class="ion-padding-vertical" style="--background: #ffffff;">
+        <p style="margin: 0 15px 10px 15px; font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Ir a panel:</p>
+        <ion-list lines="none" style="background: transparent;">
+          
+          <!-- 🌟 ESTUDIANTE: Siempre visible para todos -->
+          <ion-item button (click)="irAPanel('/tabs/horarios', 'ESTUDIANTE')" style="--background: transparent;">
+            <ion-icon name="school-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Estudiante</ion-label>
+          </ion-item>
+          
+          <!-- 🌟 TUTOR: Siempre visible si tiene el permiso -->
+          <ion-item button (click)="irAPanel('/tabs-tutor/tutorias', 'TUTOR')" *ngIf="tienePanelTutor" style="--background: transparent;">
+            <ion-icon name="briefcase-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Tutor</ion-label>
+          </ion-item>
+          
+          <!-- 🌟 COORDINACIÓN: Siempre visible si es Admin o Coordinador -->
+          <ion-item button (click)="irAPanel('/admin-postulaciones', 'COORDINADOR')" *ngIf="tienePanelAdmin" style="--background: transparent;">
+            <ion-icon name="shield-checkmark-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Coordinación</ion-label>
+          </ion-item>
+
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-popover>
+
+  <!-- ========================================== -->
+  <!-- 🌟 POPOVER: PERFIL Y OPCIONES -->
+  <!-- ========================================== -->
+  <ion-popover [isOpen]="menuPerfilAbierto" [event]="eventoPerfil" (didDismiss)="menuPerfilAbierto = false" mode="ios" style="--background: #ffffff; --width: 280px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
+    <ng-template>
+      <ion-content style="--background: #ffffff;">
+        <div style="background: #f8fafc; padding: 15px; border-bottom: 1px solid #e2e8f0; margin-bottom: 5px;">
+          <p style="margin: 0; font-weight: 900; color: #003366; font-size: 0.95rem; line-height: 1.2;">{{ nombreUsuario }}</p>
+          <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.75rem;">{{ correoUsuario }}</p>
+        </div>
+        <ion-list lines="none" style="background: transparent; padding-bottom: 10px;">
+          <ion-item button (click)="irAPerfil()" style="--background: transparent;">
+            <ion-icon name="settings-outline" slot="start" style="color: #475569;"></ion-icon>
+            <ion-label style="font-weight: 600; color: #475569;">Mi Perfil</ion-label>
+          </ion-item>
+          <ion-item button (click)="cerrarSesion()" style="--background: transparent;">
+            <ion-icon name="log-out-outline" slot="start" style="color: #ef4444;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #ef4444;">Cerrar Sesión</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-popover>
+
+</ion-content>

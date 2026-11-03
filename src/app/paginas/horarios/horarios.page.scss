@@ -1,0 +1,276 @@
+.fondo-app { --background: #f8fafc; }
+
+.logo-superior { 
+  padding: 15px; 
+  border-bottom: 2px solid #003366; 
+  display: flex; 
+  justify-content: flex-start;
+  background: white;
+}
+.logo-img { width: 140px; }
+
+.titulo-principal { 
+  color: #003366; 
+  font-weight: 900; 
+  font-size: 1.6rem; 
+  margin-top: 10px; 
+}
+
+/* Buscador */
+.buscador-contenedor {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0 15px; 
+  transition: all 0.3s ease;
+
+  &:focus-within {
+    border-color: #EAB308; 
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1);
+  }
+}
+
+.icono-lupa {
+  font-size: 1.3rem;
+  color: #64748b; 
+  margin-right: 10px; 
+}
+
+.input-busqueda {
+  flex: 1; 
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 12px 0;
+  font-size: 0.95rem;
+  color: #0f172a;
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+}
+
+.asignatura-block { margin-bottom: 25px; }
+
+.seccion-tabla { 
+  width: 100%; max-width: 1000px; margin: 0 auto; background: white; 
+  border-radius: 10px; overflow: hidden; border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.header-asig-azul { 
+  padding: 12px; background: #003366; color: white; font-weight: 800; 
+  text-align: center; text-transform: uppercase; font-size: 0.9rem; 
+}
+
+table { width: 100%; border-collapse: collapse; table-layout: auto; }
+
+th, td { 
+  padding: 8px 2px; border: 1px solid #cbd5e1; text-align: center; 
+  font-size: 0.75rem; word-wrap: break-word; white-space: pre-line; 
+}
+
+th { background: #f1f5f9; color: #003366; font-weight: 800; font-size: 0.7rem; }
+
+.col-nombre {
+  font-weight: 700; text-align: left; font-size: 0.65rem; padding-left: 5px; color: #003366;
+}
+
+.celda-llena { 
+  background: #e2e8f0; cursor: pointer; color: #003366; font-weight: bold;
+  transition: all 0.3s ease-in-out;
+}
+.celda-llena:hover {
+  background: #003366; color: #ffffff; box-shadow: inset 0 0 0 2px #EAB308;
+}
+.celda-llena:active {
+  background: #EAB308; color: #003366;
+}
+
+.btn-wa-icon { 
+  text-decoration: none; color: #25D366; font-size: 1.5rem; 
+  display: flex; justify-content: center; align-items: center;
+}
+
+.overlay { 
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+  background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 100; 
+}
+
+.modal-amarillo {
+  background: #003366; padding: 30px 20px; border-radius: 20px; text-align: center;
+  border: 2px solid #EAB308; width: 90%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  max-height: 90vh; overflow-y: auto;
+  h3 { color: #ffffff; font-weight: 900; margin-top: 0; margin-bottom: 15px; font-size: 1.2rem; line-height: 1.3;}
+  .botones-modal { display: flex; justify-content: center; gap: 30px; margin-top: 15px; }
+  .btn-azul {
+    background: white; color: #003366; width: 60px; height: 60px; border-radius: 50%;
+    font-size: 2rem; display: flex; justify-content: center; align-items: center; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer;
+  }
+  .btn-rojo { background: #ef4444; color: white; }
+}
+
+.modal-azul {
+  background: #003366; padding: 25px; border-radius: 15px; text-align: center;
+  width: 90%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 2px solid #EAB308;
+  max-height: 90vh; overflow-y: auto;
+}
+
+.btn-blanco {
+  background: white; color: #003366; border: none; padding: 12px 20px;
+  border-radius: 10px; font-weight: 900; font-size: 1rem; display: flex;
+  align-items: center; justify-content: center; gap: 8px; width: 100%; margin-bottom: 10px;
+}
+.btn-rojo-texto {
+  background: transparent; color: #fca5a5; box-shadow: none; border: 1px solid rgba(252, 165, 165, 0.3);
+}
+
+.lista-sugerencias {
+  position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 8px;
+  margin-top: 5px; max-height: 180px; overflow-y: auto; box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  z-index: 999999; border: 1px solid #cbd5e1;
+}
+.item-sugerencia {
+  padding: 12px 15px; font-size: 0.85rem; color: #003366; font-weight: bold;
+  border-bottom: 1px solid #f1f5f9; cursor: pointer;
+}
+
+/* ==============================================
+   🌟 MODIFICACIONES PARA LOS SELECTS Y CALENDARIO
+   ============================================== */
+::ng-deep .popover-blanco-gietaes {
+  --background: #ffffff !important;
+  --color: #003366 !important;
+}
+::ng-deep .popover-blanco-gietaes ion-item {
+  --background: #ffffff !important;
+  --color: #003366 !important;
+  font-weight: bold;
+}
+::ng-deep .popover-blanco-gietaes ion-radio {
+  --color: #003366 !important;
+  --color-checked: #EAB308 !important;
+}
+
+/* ==============================================
+   🌟 MEJORA EL CALENDARIO (ION-DATETIME) CON CONTRASTE PERFECTO
+   ============================================== */
+ion-datetime {
+  /* Fondo y textos generales */
+  --background: #ffffff;
+  --title-color: #003366; /* Azul institucional para el título */
+  
+  /* Color principal del texto (Días del mes) */
+  --ion-text-color: #003366; 
+
+  /* Color de los días de la semana (D, L, M, M, J, V, S) */
+  --ion-color-step-600: #475569; /* Gris oscuro para contraste */
+
+  /* Colores de selección (Círculo de fecha seleccionada) */
+  --ion-color-base: #003366; /* Círculo azul oscuro */
+  --ion-color-primary: #003366; 
+  --ion-color-primary-contrast: #ffffff; /* Letra blanca dentro del círculo azul */
+  
+  /* Día actual (Hoy) */
+  --ion-color-step-850: #EAB308; /* Anillo dorado para el día actual */
+
+  /* Días bloqueados (deshabilitados) */
+  --ion-color-step-300: #cbd5e1; /* Gris claro */
+  --ion-color-step-350: #cbd5e1; /* Gris claro */
+
+  border-radius: 8px;
+}
+
+/* 🌟 Forzar colores específicos en el Shadow DOM del calendario */
+::ng-deep ion-datetime::part(month-year-button) {
+  color: #003366; /* Mes y Año en azul oscuro */
+  font-weight: 900;
+}
+
+::ng-deep ion-datetime::part(time-button) {
+  color: #003366;
+  font-weight: bold;
+}
+
+/* 🌟 Asegurar que los días del mes y de la semana se pinten correctamente */
+::ng-deep ion-datetime::part(calendar-day) {
+  color: #003366; /* Días del mes en azul oscuro */
+  font-weight: 600;
+}
+
+::ng-deep ion-datetime::part(calendar-day disabled) {
+  color: #94a3b8; /* Días deshabilitados en gris */
+}
+
+::ng-deep ion-datetime::part(calendar-day-of-week) {
+  color: #475569; /* Iniciales de los días de la semana en gris oscuro */
+  font-weight: 700;
+}
+/* ==============================================
+   🌟 CORRECCIÓN DEFINITIVA DE CONTRASTE Y ESPACIO (MODAL PREMIUM)
+   ============================================== */
+.overlay-modal { 
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+  background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); 
+  display: flex; justify-content: center; align-items: center; z-index: 1000; 
+}
+
+.modal-premium { 
+  background: #ffffff !important; /* 🌟 Fuerza el fondo a blanco siempre */
+  width: 90%; max-width: 360px; border-radius: 20px; 
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25); 
+  overflow: hidden; 
+  display: flex; flex-direction: column; 
+  max-height: 75vh; /* 🌟 EVITA QUE CHOQUE CON EL TAB BAR DE ABAJO */
+}
+
+.modal-premium .modal-header { 
+  background: #f8fafc !important; padding: 20px 20px 15px; 
+  text-align: center; border-bottom: 1px solid #e2e8f0; 
+}
+
+/* 🌟 Fuerza los títulos a ser azul oscuro (evita que se hagan blancos) */
+.modal-premium .modal-header h2, 
+.modal-premium .modal-header h3, 
+.modal-premium .modal-header span {
+  color: #003366 !important;
+  font-weight: 900;
+  margin: 0;
+}
+
+.modal-premium .modal-body { 
+  padding: 20px; 
+  overflow-y: auto; /* 🌟 Permite hacer scroll interno si el teléfono es pequeño */
+}
+
+.step-item { 
+  display: flex; align-items: flex-start; gap: 15px; margin-bottom: 15px; 
+  background: #f1f5f9 !important; padding: 12px; border-radius: 12px; 
+  border-left: 4px solid #EAB308 !important; 
+}
+
+/* 🌟 Fuerza los textos de los pasos a ser legibles siempre */
+.step-item h4 { 
+  color: #003366 !important; 
+  margin: 0 0 5px 0; font-weight: 800; font-size: 0.95rem; 
+}
+.step-item p, .step-item span, .step-item div { 
+  color: #475569 !important; 
+  margin: 0; font-size: 0.85rem; line-height: 1.4; 
+}
+.step-item ion-icon { 
+  color: #EAB308 !important; font-size: 1.2rem; 
+}
+
+.modal-premium .modal-footer { 
+  padding: 15px 20px 20px; 
+  background: #ffffff !important; 
+}
+
+.btn-enviar { 
+  margin: 0; font-weight: 900; height: 45px; 
+  --border-radius: 10px; --background: #EAB308 !important; 
+  --color: #003366 !important; width: 100%; letter-spacing: 1px;
+}

@@ -1,0 +1,329 @@
+.fondo-app { --background: #ffffff; color-scheme: light !important; }
+
+/* 🌟 TU CONTENEDOR ORIGINAL DE PERFIL */
+.contenedor-perfil { margin-top: 40px; }
+
+.usuario-fila {
+  display: flex; align-items: center; justify-content: center; gap: 15px;
+  .icono-avatar { font-size: 5rem; color: #003366; }
+  .texto-usuario {
+    text-align: left;
+    h2 { color: #003366; font-weight: 900; font-size: 1.1rem; margin: 0; }
+    p { color: #003366; font-weight: bold; font-size: 0.9rem; margin: 5px 0 0 0; }
+  }
+}
+
+/* 🌟 TU MENÚ FLOTANTE (FAB) ORIGINAL */
+/* 🌟 TU MENÚ FLOTANTE (FAB) */
+.fab-container { 
+  position: fixed; 
+  bottom: 110px; /* 🌟 LO SUBIMOS PARA QUE LA BARRA DE TABS NO LO TAPE */
+  right: 5%; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: flex-end; 
+  z-index: 100;
+}
+.fab-menu {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;
+  .fab-item { background: #003366; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 0.8rem;}
+}
+.fab-amarillo { background: #EAB308; border: 3px solid #003366; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: #003366; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+
+/* 🌟 ESTILOS DEL DASHBOARD */
+.subtitulo-seccion {
+  font-size: 1.1rem;
+  color: #003366;
+  font-weight: 900;
+  margin-top: 20px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mt-3 { margin-top: 15px; }
+.mt-4 { margin-top: 25px; }
+
+.stat-box {
+  text-align: center;
+  padding: 10px 0;
+
+  &.right-border {
+    border-right: 1px solid #e2e8f0;
+  }
+
+  .stat-number {
+    margin: 0;
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: #003366;
+  }
+
+  .stat-label {
+    margin: 5px 0 0 0;
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+}
+
+.chart-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  border-top: 4px solid #003366;
+
+  .chart-title {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    color: #334155;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .canvas-wrapper {
+    position: relative;
+    height: 240px;
+    width: 100%;
+  }
+}
+/* ==============================================
+   🌟 MODAL NATIVO PREMIUM (INCREMENTO MATERIAS)
+   ============================================== */
+.overlay-modal { 
+  position: fixed; 
+  top: 0; left: 0; right: 0; bottom: 0; 
+  background: rgba(15, 23, 42, 0.6); /* Fondo oscuro elegante */
+  backdrop-filter: blur(4px); /* Desenfoque nativo estilo iOS/Android */
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  z-index: 1000; 
+}
+
+.modal-premium {
+  background: #ffffff; 
+  width: 90%; 
+  max-width: 360px;
+  border-radius: 20px; 
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  
+  .modal-header {
+    background: #f8fafc;
+    padding: 20px 20px 15px;
+    text-align: center;
+    border-bottom: 1px solid #e2e8f0;
+    
+    ion-icon {
+      font-size: 2.5rem;
+      color: #003366;
+      margin-bottom: 5px;
+    }
+
+    h3 { 
+      color: #003366; 
+      font-weight: 900; 
+      margin: 0; 
+      font-size: 1.1rem; 
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .modal-body {
+    padding: 20px;
+    text-align: center;
+
+    .modal-desc {
+      font-size: 0.85rem; 
+      color: #475569; 
+      margin-top: 0;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .cargando-box {
+      color: #003366; 
+      font-weight: bold; 
+      font-size: 0.9rem;
+    }
+
+    .input-moderno {
+      --background: #ffffff;
+      --border-radius: 12px;
+      --padding-start: 15px;
+      border: 2px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      text-align: left;
+      transition: all 0.3s ease;
+      
+      &:focus-within {
+        border-color: #EAB308;
+        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.1);
+      }
+
+      ion-select { 
+        color: #0f172a !important; 
+        font-weight: 700; 
+        font-size: 0.9rem;
+        padding-left: 5px;
+      }
+    }
+
+    .alerta-error {
+      color: #ef4444; 
+      font-size: 0.85rem; 
+      font-weight: bold; 
+      background: #fef2f2;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #fca5a5;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: left;
+      line-height: 1.3;
+    }
+  }
+
+  .modal-footer {
+    display: flex; 
+    padding: 10px 20px 20px;
+    gap: 12px;
+    
+    ion-button {
+      margin: 0;
+      flex: 1;
+      font-weight: 800;
+      height: 45px;
+      --border-radius: 10px;
+      letter-spacing: 0.5px;
+      font-size: 0.85rem;
+    }
+
+    .btn-cancelar {
+      --color: #64748b;
+      --border-color: #cbd5e1;
+    }
+
+    .btn-enviar {
+      --background: #EAB308;
+      --background-hover: #d97706;
+      --color: #003366;
+    }
+  }
+}
+
+ion-content {
+  --padding-bottom: 120px; /* Evita que el FAB quede tapado por los tabs */
+}
+/* ========================================== */
+/* 🌟 CALENDARIO INTERACTIVO Y MODALIDAD      */
+/* ========================================== */
+
+.btn-modalidad {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+.btn-modalidad.activo {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #38bdf8;
+  box-shadow: 0 4px 10px rgba(56, 189, 248, 0.2);
+}
+
+.calendario-scroll {
+  overflow-x: auto;
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.tabla-horarios {
+  width: 100%;
+  min-width: 500px; /* Obliga a que tenga un ancho mínimo para hacer scroll en celulares */
+  border-collapse: collapse;
+  background: white;
+
+  th {
+    background: #003366;
+    color: white;
+    padding: 12px 5px;
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    text-align: center;
+    border: 1px solid #0f172a;
+  }
+
+  td {
+    border: 1px solid #e2e8f0;
+    text-align: center;
+    padding: 0;
+    height: 45px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  td:not(.columna-hora):hover {
+    background: #f8fafc;
+  }
+
+  .columna-hora {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 900;
+    font-size: 0.7rem;
+    width: 90px;
+    cursor: default;
+  }
+
+  td.seleccionado {
+    background: #003366 !important; /* Azul institucional */
+    box-shadow: inset 0 0 0 3px #EAB308; /* Contorno dorado interior */
+  }
+
+  td.seleccionado .texto-modalidad {
+    color: #ffffff !important; /* Letras blancas */
+  }
+
+  td.bloqueado {
+    background: #fee2e2; /* Rojo claro para bloqueos */
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  .celda-contenido {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+  }
+
+  .texto-modalidad {
+    color: white;
+    font-weight: 900;
+    font-size: 1rem;
+  }
+}

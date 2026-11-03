@@ -1,0 +1,465 @@
+/* 🌟 FORZAMOS EL MODO CLARO IGNORANDO EL TEMA DEL CELULAR */
+ion-content {
+  --background: #f4f5f8 !important;
+  color: #333333 !important;
+  color-scheme: light !important;
+}
+
+.titulo-azul {
+  color: #003366 !important;
+  font-weight: 900;
+  font-size: 1.25rem;
+  margin-top: 15px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.guia-contacto {
+  background: rgba(0, 51, 102, 0.04) !important;
+  border: 1px solid rgba(0, 51, 102, 0.1) !important;
+  
+  h4 { color: #003366 !important; }
+  ol, li { color: #475569 !important; }
+}
+
+.tarjeta-azul {
+  background: #ffffff !important;
+  border-radius: 12px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  /* 🌟 Profundidad estática (sombra interna oscura en el lado derecho) */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08), inset -35px 0 25px -25px rgba(0,0,0,0.15) !important;
+  border-right: 2px solid #e2e8f0; /* Borde físico que ayuda a la ilusión de capa */
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 15px;
+
+  .icono-blanco {
+    background: rgba(0, 51, 102, 0.1) !important;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+    flex-shrink: 0;
+
+    ion-icon {
+      font-size: 1.6rem;
+      color: #003366 !important;
+    }
+  }
+
+  .info-texto {
+    flex: 1;
+
+    h3 {
+      color: #003366 !important;
+      font-weight: 800;
+      margin: 0 0 5px 0;
+    }
+    p, span {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #64748b !important;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+  }
+
+}
+
+.leyenda {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  font-size: 0.8rem;
+  color: #64748b !important;
+  font-weight: 600;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+
+    &.verde { background: #34d399 !important; }
+    &.amarillo { background: #fde047 !important; }
+    &.rojo { background: #ef4444 !important; }
+  }
+}
+
+/* ==============================================
+   🌟 MODAL DE GUÍA PREMIUM
+   ============================================== */
+.overlay-modal { 
+  position: fixed; 
+  top: 0; left: 0; right: 0; bottom: 0; 
+  background: rgba(15, 23, 42, 0.7); 
+  backdrop-filter: blur(4px); 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  z-index: 1000; 
+}
+
+.modal-premium {
+  background: #ffffff; 
+  width: 90%; 
+  max-width: 360px;
+  border-radius: 20px; 
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  
+  .modal-header {
+    background: #f8fafc;
+    padding: 20px 20px 15px;
+    text-align: center;
+    border-bottom: 1px solid #e2e8f0;
+    
+    ion-icon {
+      font-size: 2.5rem;
+      color: #003366;
+      margin-bottom: 5px;
+    }
+
+    h3 { 
+      color: #003366; 
+      font-weight: 900; 
+      margin: 0; 
+      font-size: 1.1rem; 
+    }
+  }
+
+  .modal-body {
+    padding: 20px;
+
+    .modal-desc {
+      font-size: 0.85rem; 
+      color: #475569; 
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 15px;
+      margin-bottom: 15px;
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 12px;
+      border-left: 4px solid #EAB308;
+
+      ion-icon {
+        font-size: 1.8rem;
+        color: #003366;
+        margin-top: 2px;
+      }
+
+      strong {
+        color: #003366;
+        font-size: 0.95rem;
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #475569;
+        line-height: 1.3;
+      }
+    }
+  }
+
+  .modal-footer {
+    padding: 0 20px 20px;
+    
+    .btn-enviar {
+      margin: 0;
+      font-weight: 800;
+      height: 45px;
+      --border-radius: 10px;
+      --background: #EAB308;
+      --background-hover: #d97706;
+      --color: #003366;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+/* ==============================================
+   🌟 BOTÓN DE ESTADO (ESTILO PÍLDORA) Y DESLIZAMIENTO
+   ============================================== */
+.acciones-derecha {
+  margin-left: auto; 
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Separación entre la píldora y la flecha de deslizar */
+  position: relative; 
+  z-index: 99; 
+  pointer-events: auto; /* Garantiza que reciba el clic */
+}
+
+.boton-estado-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 5px 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); 
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:active {
+    background: #f8fafc;
+    transform: scale(0.95); 
+  }
+
+  ion-icon {
+    color: #003366;
+    font-size: 1.1rem;
+    font-weight: 900;
+  }
+}
+
+.punto-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* ==============================================
+   🌟 INDICADOR DE DESLIZAMIENTO ESTÁTICO (CERO RECURSOS)
+   ============================================== */
+.indicador-deslizamiento {
+  display: flex;
+  align-items: center;
+  color: #cbd5e1; /* Gris sutil */
+  font-size: 1.4rem;
+  padding-left: 6px;
+  margin-left: 2px;
+  border-left: 2px dashed #f1f5f9; /* Línea de "corte" visual */
+}
+/* ==============================================
+   🌟 CALENDARIO INTERACTIVO (MODAL RENOVACIÓN)
+   ============================================== */
+.calendario-scroll {
+  overflow-x: auto;
+  margin-top: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.tabla-horarios {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  background: white;
+
+  th {
+    background: #003366;
+    color: white;
+    padding: 8px 4px;
+    font-size: 0.75rem;
+    border: 1px solid #cbd5e1;
+    text-transform: uppercase;
+  }
+
+  td {
+    border: 1px solid #cbd5e1;
+    padding: 0;
+    cursor: pointer;
+    transition: 0.2s;
+    height: 40px;
+  }
+
+  .columna-hora {
+    font-weight: bold;
+    background: #f8fafc;
+    color: #003366;
+    padding: 2px;
+  }
+
+  .seleccionado {
+    background: #EAB308 !important;
+    color: #003366 !important;
+    font-weight: 900;
+  }
+
+  .celda-contenido {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+  }
+
+  .texto-modalidad {
+    font-size: 0.7rem;
+    font-weight: 900;
+  }
+}
+/* ==============================================
+   🌟 TARJETAS WIZARD (RENOVACIÓN TUTOR)
+   ============================================== */
+.tarjeta-btn {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ion-icon { font-size: 1.5rem; }
+
+  &.activa {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b981; /* Verde */
+    color: #10b981;
+  }
+}
+
+.tarjeta-btn.peligro {
+  &.activa-peligro {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444; /* Rojo */
+    color: #ef4444;
+  }
+}
+
+/* Grilla de Ciclos */
+.grilla-ciclos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ciclo-box {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px 0;
+  text-align: center;
+  font-weight: 800;
+  color: #475569;
+  cursor: pointer;
+  transition: 0.2s;
+
+  &.activo {
+    background: #003366;
+    color: #ffffff;
+    border-color: #003366;
+  }
+}
+
+/* Opciones Verticales (Permanencia) */
+.tarjeta-opcion {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 14px 15px;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  
+  &.activa {
+    background: #003366;
+    color: #ffffff;
+    border-color: #003366;
+  }
+}
+
+/* Tarjetas Check (Materias) */
+.tarjeta-check {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 14px 15px;
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: #475569;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 1.4rem;
+    color: #10b981;
+  }
+
+  &.seleccionada {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.05);
+    color: #003366;
+  }
+}
+
+/* Botones Modalidad Calendario */
+.btn-modalidad {
+  flex: 1;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 5px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #475569;
+  cursor: pointer;
+
+  &.activo {
+    background: #EAB308;
+    color: #003366;
+    border-color: #EAB308;
+  }
+}
+.bloqueado {
+    background: #f1f5f9 !important; /* Gris muy claro */
+    cursor: not-allowed !important;
+    opacity: 0.5;
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 5px,
+      #e2e8f0 5px,
+      #e2e8f0 10px
+    ); /* Un tramado sutil de líneas diagonales para que se vea "tachado" */
+  }
+  /* Asegurar que se vea el botón de asistencia y modalidad */
+.info-texto p {
+  margin: 0; 
+  font-size: 0.8rem; 
+  color: #475569; 
+  line-height: 1.4;
+}
+
+.info-texto ion-icon {
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* El espaciador fantasma ya fue incluido en el HTML mediante style="padding-bottom: 100px;" */

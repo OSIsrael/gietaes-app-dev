@@ -1,0 +1,368 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="header-blanco">
+    <img src="assets/logo-tutorias.png" alt="Tutorías entre Pares" class="logo-cabecera" slot="start" onerror="this.src='assets/logo-gietaes.png'">
+
+    <ion-buttons slot="end" style="display: flex; align-items: center; gap: 8px; margin-right: 10px;">
+      <!-- SELECTOR DE PANEL -->
+      <div (click)="(tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE') ? abrirMenuRol($event) : null" 
+           [style.cursor]="(tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE') ? 'pointer' : 'default'" 
+           style="background: #f8fafc; border: 1.5px solid #003366; border-radius: 20px; padding: 4px 10px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
+        <ion-icon [name]="iconoRolActual" style="color: #003366; font-size: 1.2rem; margin-right: 6px;"></ion-icon>
+        <span style="color: #003366; font-size: 0.7rem; font-weight: 900; white-space: nowrap; margin-right: 4px; text-transform: uppercase;">
+          PANEL: {{ nombrePanelActual }}
+        </span>
+        <ion-icon *ngIf="tienePanelTutor || tienePanelAdmin || rolUsuario !== 'ESTUDIANTE'" name="chevron-down-outline" style="color: #003366; font-size: 0.9rem;"></ion-icon>
+      </div>
+
+      <!-- NOTIFICACIONES -->
+      <ion-button (click)="irANotificaciones()" style="position: relative; --background: rgba(0, 51, 102, 0.05); --border-radius: 50%; width: 42px; height: 42px;">
+        <ion-icon name="notifications-outline" style="color: #003366; font-size: 1.5rem;"></ion-icon>
+        <div *ngIf="hayNotificacionesSinLeer" style="position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; background-color: #EAB308; border-radius: 50%; border: 2px solid white;"></div>
+      </ion-button>
+
+      <!-- PERFIL -->
+      <ion-button (click)="abrirMenuPerfil($event)" style="--background: rgba(0, 51, 102, 0.05); --border-radius: 50%; width: 42px; height: 42px;">
+        <ion-icon name="person-circle-outline" style="color: #003366; font-size: 1.8rem;"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <div class="linea-separadora"></div>
+</ion-header>
+
+<ion-content class="fondo-app">
+  <div class="ion-padding" style="padding-bottom: 200px;">
+    <h2 class="titulo-azul">CLASES A IMPARTIR:</h2>
+
+    <p *ngIf="cargando" style="text-align: center; color: #666; margin-top: 30px;">Cargando tu agenda docente...</p>
+    
+    <div *ngIf="!cargando && tutoriasPorImpartir.length === 0" style="text-align: center; color: #666; margin-top: 40px;">
+      <ion-icon name="calendar-outline" style="font-size: 4rem; color: #cbd5e1;"></ion-icon>
+      <p style="font-size: 1.1rem; font-weight: bold; color: #003366; margin-top: 10px;">Agenda Libre</p>
+      <p>Aún no tienes estudiantes agendados en tus horarios.</p>
+    </div>
+
+    <!-- 🌟 GUÍA FORMAL PARA EL TUTOR -->
+    <div class="guia-contacto" *ngIf="!cargando && tutoriasPorImpartir.length > 0" style="margin-bottom: 25px; background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2);">
+      <h4 style="color: #003366; font-size: 0.95rem; font-weight: 800; margin-top: 0; margin-bottom: 12px; display: flex; align-items: center;">
+        <ion-icon name="briefcase-outline" style="font-size: 1.4rem; color: #10b981; margin-right: 6px;"></ion-icon>
+        Directrices de Gestión Docente
+      </h4>
+      <ol style="margin: 0; padding-left: 25px; color: #475569; font-size: 0.85rem; line-height: 1.6;">
+        <li style="margin-bottom: 6px;">Seleccione el <strong>indicador de color</strong> para CONFIRMAR o CANCELAR la solicitud de tutoría.</li>
+        <li style="margin-bottom: 6px;"><strong>Deslice la tarjeta</strong> hacia los lados para contactar al estudiante vía WhatsApp y coordinar la logística.</li>
+        <li style="margin-bottom: 6px;">El registro de asistencia solo se habilitará cuando la clase esté en estado <strong>CONFIRMADA</strong>.</li>
+      </ol>
+    </div>
+
+    <ion-list style="background: transparent;" lines="none" *ngIf="!cargando">
+     <ion-item-sliding *ngFor="let t of tutoriasPorImpartir" style="background: transparent; margin-bottom: 15px;">
+        
+        <ion-item-options side="start">
+          <ion-item-option color="success" (click)="contactarEstudiante(t.celularEstudiante, t.codigoPaisEstudiante, t.nombreEstudiante, t.materia)">
+            <ion-icon slot="icon-only" name="logo-whatsapp" style="font-size: 1.8rem;"></ion-icon>
+          </ion-item-option>
+          <ion-item-option color="danger" (click)="eliminarTutoria(t)">
+            <ion-icon slot="icon-only" name="trash-outline" style="font-size: 1.8rem;"></ion-icon>
+          </ion-item-option>
+        </ion-item-options>
+
+        <!-- TARJETA VISIBLE -->
+        <ion-item style="--padding-start: 0; --inner-padding-end: 0; --background: transparent;">
+          <div class="tarjeta-azul" style="width: 100%; margin: 0; border-left: 5px solid #EAB308;">
+            <div class="icono-blanco" style="color: #003366;"><ion-icon name="person-outline"></ion-icon></div>
+            <div class="info-texto">
+              <h3 style="font-size: 1.1rem; margin-bottom: 5px;">{{ t.materia }}</h3>
+              
+              <p style="color: #003366; font-weight: 900; font-size: 0.9rem; margin-bottom: 5px;">
+                Solicitante: {{ t.nombreEstudiante }}
+              </p>
+
+              <!-- 🌟 ÍCONOS DINÁMICOS DE INVITADOS UNIDOS -->
+              <div *ngIf="t.alumnosExtra && t.alumnosExtra.length > 0" style="display: flex; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 20px; align-items: center;">
+                  <!-- Imprime un ícono de persona por cada alumno extra -->
+                  <ion-icon name="person" *ngFor="let extra of t.alumnosExtra" style="color: #d97706; font-size: 1.1rem; margin-right: 2px;"></ion-icon>
+                  <span style="font-size: 0.75rem; color: #003366; font-weight: bold; margin-left: 4px;">(+{{ t.alumnosExtra.length }} unidos)</span>
+                </div>
+              </div>
+
+              <!-- 🌟 DETALLES DE CLASE ACTUALIZADO -->
+              <p style="margin-bottom: 2px; font-size: 0.8rem; color: #475569;">
+                <ion-icon name="calendar-outline" style="vertical-align: middle;"></ion-icon> 
+                Fecha: {{ t.fecha_exacta ? (t.fecha_exacta + ' | ' + t.dia) : t.dia }}
+              </p>
+              
+              <p style="margin-bottom: 2px; font-size: 0.8rem; color: #475569;"><ion-icon name="time-outline" style="vertical-align: middle;"></ion-icon> Hora: {{ t.hora }}</p>
+              <p style="font-weight: bold; font-size: 0.8rem; color: #475569;"><ion-icon name="business-outline" style="vertical-align: middle;"></ion-icon> Modalidad: {{ t.modalidad || 'Presencial' }}</p>
+
+              <p *ngIf="t.codigo && t.codigo !== 'SIN CÓDIGO'" style="font-size: 0.75rem; color: #666; margin-top: 8px; font-weight: bold; background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 4px; display: inline-block;">
+                CÓDIGO GRUPAL: {{ t.codigo }}
+              </p>
+
+              <!-- 🌟 BOTÓN DE ASISTENCIA (BLOQUEADO SI ESTÁ PENDIENTE) -->
+              <div style="margin-top: 10px;">
+                <ion-button *ngIf="t.estado === 'CONFIRMADA' || t.estado === 'ACEPTADA'" fill="solid" size="small" (click)="irATomarAsistencia(t)" style="--background: #003366; --color: white; font-weight: bold; --border-radius: 6px; height: 30px;">
+                  <ion-icon name="document-text-outline" slot="start"></ion-icon>
+                  Tomar Asistencia
+                </ion-button>
+                <p *ngIf="t.estado === 'PENDIENTE'" style="font-size: 0.7rem; color: #ef4444; font-style: italic; font-weight: bold;">
+                  * Confirme la tutoría para habilitar la asistencia.
+                </p>
+              </div>
+            </div>
+            
+            <div class="acciones-derecha">
+              <div class="boton-estado-pill" (click)="abrirMenuEstado($event, t)">
+                <div class="punto-color" [style.background]="t.color"></div>
+                <ion-icon name="chevron-down-outline"></ion-icon>
+              </div>
+              <div class="indicador-deslizamiento">
+                <ion-icon name="swap-horizontal-outline"></ion-icon>
+              </div>
+            </div>
+          </div>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option color="success" (click)="contactarEstudiante(t.celularEstudiante, t.codigoPaisEstudiante, t.nombreEstudiante, t.materia)">
+            <ion-icon slot="icon-only" name="logo-whatsapp" style="font-size: 1.8rem;"></ion-icon>
+          </ion-item-option>
+          <ion-item-option color="danger" (click)="eliminarTutoria(t)">
+            <ion-icon slot="icon-only" name="trash-outline" style="font-size: 1.8rem;"></ion-icon>
+          </ion-item-option>
+        </ion-item-options>
+
+      </ion-item-sliding>
+    </ion-list>
+    
+    <div class="leyenda" *ngIf="!cargando && tutoriasPorImpartir.length > 0">
+      <span><div class="punto verde"></div> Confirmada</span>
+      <span><div class="punto amarillo"></div> Pendiente</span>
+      <span><div class="punto rojo" style="background: #ef4444;"></div> Cancelada</span>
+    </div>
+
+    <!-- POPOVER ESTADO -->
+    <ion-popover #popoverEstado [isOpen]="menuEstadoAbierto" (didDismiss)="menuEstadoAbierto = false" class="popover-estado-gietaes">
+      <ng-template>
+        <div class="menu-estado-header">
+          <p class="sub">Cambiar estado de:</p>
+          <h4>{{ tutoriaSeleccionada?.nombreEstudiante }}</h4>
+        </div>
+        <ion-list lines="none" class="lista-estados">
+          <ion-item button (click)="seleccionarNuevoEstado('CONFIRMADA', '#34d399')">
+            <div class="bolita verde" slot="start"></div>
+            <ion-label>Confirmada</ion-label>
+          </ion-item>
+          <ion-item button (click)="seleccionarNuevoEstado('PENDIENTE', '#fde047')">
+            <div class="bolita amarilla" slot="start"></div>
+            <ion-label>Pendiente</ion-label>
+          </ion-item>
+          <ion-item button (click)="seleccionarNuevoEstado('CANCELADA', '#ef4444')">
+            <div class="bolita roja" slot="start"></div>
+            <ion-label>Cancelada</ion-label>
+          </ion-item>
+        </ion-list>
+      </ng-template>
+    </ion-popover>
+
+  </div>
+
+  <!-- MODAL DE AYUDA -->
+  <div class="overlay-modal animate__animated animate__fadeIn" *ngIf="mostrarGuiaTutor">
+    <div class="modal-premium animate__animated animate__zoomIn">
+      <div class="modal-header">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <h3>PANEL DE TUTOR</h3>
+      </div>
+      <div class="modal-body text-left">
+        <p class="modal-desc" style="text-align: center;">¡Bienvenido a tu panel! Aquí gestionarás tus clases:</p>
+        <div class="step-item">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <div>
+            <strong>1. Gestiona Solicitudes</strong>
+            <p>Revisa las tutorías pendientes. Toca la bolita de color para CONFIRMARLAS o CANCELARLAS.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <ion-icon name="logo-whatsapp" style="color: #25D366;"></ion-icon>
+          <div>
+            <strong>2. Contacta al Alumno</strong>
+            <p>Desliza la tarjeta a la izquierda y usa WhatsApp para coordinar el aula física o enviarle el enlace de Zoom.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <ion-icon name="document-text-outline"></ion-icon>
+          <div>
+            <strong>3. Registra Asistencia</strong>
+            <p>Al terminar la clase, ve a la pestaña "Asistencia" para registrar la sesión y sumar horas a tus estadísticas.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <ion-button class="btn-enviar" (click)="cerrarGuia()" style="width: 100%;">
+          ¡ENTENDIDO, A ENSEÑAR!
+        </ion-button>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- 🌟 MODAL DE RENOVACIÓN TIPO WIZARD (PASO A PASO) -->
+  <ion-modal [isOpen]="mostrarModalRenovacionTutor" [backdropDismiss]="false">
+    <ng-template>
+      <div style="background: #003366; padding: 20px 15px; text-align: center; position: relative; z-index: 10;">
+        <ion-icon *ngIf="pasoActual > 1" name="chevron-back-outline" (click)="pasoAnterior()" 
+                  style="position: absolute; left: 15px; top: 25px; color: white; font-size: 1.8rem; cursor: pointer;"></ion-icon>
+        <h2 style="color: #ffffff; font-weight: 900; margin: 0; font-size: 1.3rem;">RENOVACIÓN TUTORÍA</h2>
+        <p style="color: #cbd5e1; font-size: 0.8rem; margin: 5px 0 0 0;">Paso {{ pasoActual }} de 4 • Periodo {{ periodoApp }}</p>
+      </div>
+      
+      <ion-content style="--background: #f8fafc;">
+        <div style="padding: 20px;">
+          
+          <!-- ================= PASO 1: DECISIÓN ================= -->
+          <div *ngIf="pasoActual === 1" class="animate__animated animate__fadeIn">
+            <h3 style="color: #003366; font-weight: 900; text-align: center; margin-bottom: 25px;">¿Deseas continuar siendo Tutor este periodo?</h3>
+            <div class="tarjeta-btn" [class.activa]="decisionTutor === 'SI'" (click)="seleccionarDecision('SI')">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              <span>Sí, quiero continuar</span>
+            </div>
+            <div class="tarjeta-btn peligro" [class.activa-peligro]="decisionTutor === 'NO'" (click)="seleccionarDecision('NO')" style="margin-top: 15px;">
+              <ion-icon name="close-circle-outline"></ion-icon>
+              <span>No, deseo darme de baja</span>
+            </div>
+          </div>
+
+          <!-- ================= PASO 2: DATOS BÁSICOS ================= -->
+          <div *ngIf="pasoActual === 2" class="animate__animated animate__fadeInRight">
+            <div style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; padding: 12px; border-radius: 8px; margin-bottom: 25px;">
+              <p style="margin: 0; color: #003366; font-weight: 800; font-size: 0.9rem;">
+                <ion-icon name="information-circle" style="color: #10b981; vertical-align: middle; font-size: 1.2rem; margin-right: 5px;"></ion-icon>
+                Ciclo Académico: {{ nuevoCicloTutor }}vo
+              </p>
+              <p style="margin: 5px 0 0 0; color: #475569; font-size: 0.75rem; line-height: 1.3;">
+                Este dato se sincronizó automáticamente desde tu perfil general de estudiante.
+              </p>
+            </div>
+            <label style="font-weight: 900; color: #003366;">¿Cuánto tiempo tienes como tutor?</label>
+            <div style="margin-top: 10px;">
+              <div class="tarjeta-opcion" [class.activa]="permanenciaTutor === 'Soy nuevo'" (click)="seleccionarPermanencia('Soy nuevo')">Soy nuevo</div>
+              <div class="tarjeta-opcion" [class.activa]="permanenciaTutor === '1 ciclo'" (click)="seleccionarPermanencia('1 ciclo')">1 Ciclo</div>
+              <div class="tarjeta-opcion" [class.activa]="permanenciaTutor === '2 ciclos'" (click)="seleccionarPermanencia('2 ciclos')">2 Ciclos</div>
+              <div class="tarjeta-opcion" [class.activa]="permanenciaTutor === 'Mas de 2 ciclos'" (click)="seleccionarPermanencia('Mas de 2 ciclos')">Más de 2 Ciclos</div>
+            </div>
+          </div>
+
+          <!-- ================= PASO 3: MATERIAS ================= -->
+          <div *ngIf="pasoActual === 3" class="animate__animated animate__fadeInRight">
+            <label style="font-weight: 900; color: #003366; font-size: 1.1rem;">Materias a impartir</label>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">Toca las materias que deseas dar este ciclo:</p>
+            <div *ngIf="materiasDisponibles.length === 0" style="text-align: center; color: #94a3b8; padding: 20px;">
+              No hay materias disponibles para tu ciclo.
+            </div>
+            <div style="margin-top: 15px;">
+              <div class="tarjeta-check" *ngFor="let mat of materiasDisponibles" 
+                   [class.seleccionada]="materiasSeleccionadas.includes(mat)" 
+                   (click)="toggleMateriaSeleccionada(mat)">
+                <span>{{ mat }}</span>
+                <ion-icon name="checkmark-circle" *ngIf="materiasSeleccionadas.includes(mat)"></ion-icon>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= PASO 4: CALENDARIO ================= -->
+          <div *ngIf="pasoActual === 4" class="animate__animated animate__fadeInRight">
+            <label style="font-weight: 900; color: #003366; font-size: 1.1rem;">Configura tu Disponibilidad</label>
+            <div style="display: flex; gap: 5px; margin-top: 15px;">
+              <div class="btn-modalidad" [class.activo]="modalidadGlobal === 'PRESENCIAL'" (click)="seleccionarModalidadGlobal('PRESENCIAL')">Presencial</div>
+              <div class="btn-modalidad" [class.activo]="modalidadGlobal === 'VIRTUAL'" (click)="seleccionarModalidadGlobal('VIRTUAL')">Virtual</div>
+              <div class="btn-modalidad" [class.activo]="modalidadGlobal === 'AMBAS'" (click)="seleccionarModalidadGlobal('AMBAS')">Ambas</div>
+            </div>
+            <p style="font-size: 0.75rem; color: #d97706; font-weight: bold; margin: 15px 0 10px 0;">
+              * Toca los cuadros para asignar tu horario. Sábados obligatoriamente VIRTUAL.
+            </p>
+            <div class="calendario-scroll">
+              <table class="tabla-horarios">
+                <thead>
+                  <tr>
+                    <th>Hora</th>
+                    <th *ngFor="let dia of diassemana">{{ dia.substring(0,3) }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let franja of franjasHorarias">
+                    <td class="columna-hora" style="font-size: 0.65rem;">{{ franja }}</td>
+                    <td *ngFor="let dia of diassemana" 
+                        [class.seleccionado]="horarioSeleccionado[dia + '-' + franja]"
+                        [class.bloqueado]="esBloqueDeshabilitado(dia, franja)"
+                        (click)="seleccionarBloque(dia, franja)">
+                      <div class="celda-contenido">
+                        <span *ngIf="horarioSeleccionado[dia + '-' + franja]" class="texto-modalidad">
+                          {{ horarioSeleccionado[dia + '-' + franja] === 'PRESENCIAL' ? 'P' : (horarioSeleccionado[dia + '-' + franja] === 'VIRTUAL' ? 'V' : 'P/V') }}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </ion-content>
+
+      <div style="padding: 15px 20px; background: #ffffff; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); z-index: 10;">
+        <ion-button *ngIf="pasoActual < 4" expand="block" (click)="siguientePaso()" style="--background: #EAB308; --color: #003366; font-weight: 900; height: 50px; --border-radius: 12px;">
+          SIGUIENTE PASO
+        </ion-button>
+        <ion-button *ngIf="pasoActual === 4" expand="block" (click)="confirmarRenovacionTutor()" style="--background: #003366; --color: #ffffff; font-weight: 900; height: 50px; --border-radius: 12px;">
+          CONFIRMAR Y GUARDAR
+        </ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- 🌟 POPOVER: CAMBIO DE PANEL -->
+  <ion-popover [isOpen]="menuRolAbierto" [event]="eventoRol" (didDismiss)="menuRolAbierto = false" mode="ios" style="--background: #ffffff; --width: 220px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
+    <ng-template>
+      <ion-content class="ion-padding-vertical" style="--background: #ffffff;">
+        <p style="margin: 0 15px 10px 15px; font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Ir a panel:</p>
+        <ion-list lines="none" style="background: transparent;">
+          <ion-item button (click)="irAPanel('/tabs/horarios', 'ESTUDIANTE')" style="--background: transparent;">
+            <ion-icon name="school-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Estudiante</ion-label>
+          </ion-item>
+          <ion-item button (click)="irAPanel('/tabs-tutor/tutorias', 'TUTOR')" *ngIf="tienePanelTutor" style="--background: transparent;">
+            <ion-icon name="briefcase-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Tutor</ion-label>
+          </ion-item>
+          <ion-item button (click)="irAPanel('/admin-postulaciones', 'COORDINADOR')" *ngIf="tienePanelAdmin" style="--background: transparent;">
+            <ion-icon name="shield-checkmark-outline" slot="start" style="color: #003366;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #003366;">Coordinación</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-popover>
+
+  <!-- 🌟 POPOVER: PERFIL Y OPCIONES -->
+  <ion-popover [isOpen]="menuPerfilAbierto" [event]="eventoPerfil" (didDismiss)="menuPerfilAbierto = false" mode="ios" style="--background: #ffffff; --width: 280px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
+    <ng-template>
+      <ion-content style="--background: #ffffff;">
+        <div style="background: #f8fafc; padding: 15px; border-bottom: 1px solid #e2e8f0; margin-bottom: 5px;">
+          <p style="margin: 0; font-weight: 900; color: #003366; font-size: 0.95rem; line-height: 1.2;">{{ nombreUsuario || 'TUTOR' }}</p>
+          <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.75rem;">{{ correoUsuario }}</p>
+        </div>
+        <ion-list lines="none" style="background: transparent; padding-bottom: 10px;">
+          <ion-item button (click)="irAPerfil()" style="--background: transparent;">
+            <ion-icon name="settings-outline" slot="start" style="color: #475569;"></ion-icon>
+            <ion-label style="font-weight: 600; color: #475569;">Mi Perfil</ion-label>
+          </ion-item>
+          <ion-item button (click)="cerrarSesion()" style="--background: transparent;">
+            <ion-icon name="log-out-outline" slot="start" style="color: #ef4444;"></ion-icon>
+            <ion-label style="font-weight: 700; color: #ef4444;">Cerrar Sesión</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-popover>
+</ion-content>
