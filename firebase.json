@@ -17,7 +17,6 @@
     }
   ],
   "hosting": {
-    "site":"tutorias-entre-pares",
     "public": "www",
     "ignore": [
       "firebase.json",

@@ -426,8 +426,7 @@ export class TutorEstadisticasPage implements OnInit {
     
     this.horarioSeleccionado = { ...this.horarioSeleccionado };
   }
-
-  async guardarNuevoHorario() {
+async guardarNuevoHorario() {
     if (Object.keys(this.horarioSeleccionado).length === 0) {
       this.mostrarAviso('Por favor, selecciona al menos un bloque de horario.', 'advertencia');
       return;
@@ -446,48 +445,50 @@ export class TutorEstadisticasPage implements OnInit {
       }
 
       const correo = this.usuario.correo.toLowerCase().trim();
-      const q1 = query(collection(this.firestore, 'Tutores'), where('correo_google', '==', correo), where('estado', '==', 'ACTIVO'));
-      const q2 = query(collection(this.firestore, 'Tutores'), where('correo', '==', correo), where('estado', '==', 'ACTIVO'));
       
-      const snaps1 = await getDocs(q1);
-      const snaps2 = await getDocs(q2);
+      // 🌟 BUSCAMOS AL TUTOR PARA OBTENER SUS MATERIAS ACTUALES
+      const q = query(collection(this.firestore, 'Tutores'), where('correo', '==', correo), where('estado', '==', 'ACTIVO'));
+      const snaps = await getDocs(q);
       
-      const docsAActualizar = new Map();
-      snaps1.forEach(d => docsAActualizar.set(d.id, d.data()));
-      snaps2.forEach(d => docsAActualizar.set(d.id, d.data()));
-
-      if (docsAActualizar.size > 0) {
-        let datosTutorParaExcel: any = null;
-
-        for (let [id, datosTutor] of docsAActualizar) {
-          await updateDoc(doc(this.firestore, 'Tutores', id), { horarios: horarioLimpio });
-          if (!datosTutorParaExcel) datosTutorParaExcel = datosTutor;
-        }
-
-        const horariosFormateados = this.dbService.formatearHorariosParaExcel(horarioLimpio);
-        const payloadExcel = {
-          opcion: 'aceptarTutorOficial', 
-          nombre: datosTutorParaExcel['nombre'] || this.usuario.nombre,
-          cedula: datosTutorParaExcel['cedula'] || '',
-          ciclo: datosTutorParaExcel['ciclo'] || this.cicloUsuario,
-          carrera: datosTutorParaExcel['carrera'] || this.carreraUsuario,
-          materias: Array.isArray(datosTutorParaExcel['materias']) ? datosTutorParaExcel['materias'].join(', ') : (datosTutorParaExcel['materias'] || ''),
-          correo: datosTutorParaExcel['correo'] || datosTutorParaExcel['correo_google'] || this.usuario.correo,
-          celular: datosTutorParaExcel['celular'] || this.celularUsuario,
-          permanencia: datosTutorParaExcel['permanencia'] || 'TUTOR ACTIVO',
-          horarios: horariosFormateados,
-          periodo: datosTutorParaExcel['ultimo_periodo_activo'] || this.periodoActualApp
-        };
-        await this.dbService.enviarAExcel(payloadExcel);
-
-        this.mostrarAviso('¡Tu horario ha sido actualizado exitosamente!', 'exito');
-        this.mostrarModalHorarios = false;
-      } else {
-        this.mostrarAviso('No pudimos localizar tu perfil en la base de datos.', 'error');
+      let materiasDelTutor = '';
+      if (!snaps.empty) {
+        const datosTutor = snaps.docs[0].data();
+        materiasDelTutor = Array.isArray(datosTutor['materias']) ? datosTutor['materias'].join(', ') : (datosTutor['materias'] || 'Sus materias actuales');
       }
+
+      // 🌟 CREAMOS UNA POSTULACIÓN DE "MODIFICACIÓN DE HORARIO"
+      const payload = {
+        correo: correo,
+        nombre: this.usuario.nombre,
+        sede: this.usuario.sede,
+        carrera: this.carreraUsuario,
+        ciclo: this.cicloUsuario,
+        celular: this.celularUsuario,
+        permanencia: 'TUTOR ACTIVO (MODIFICA HORARIO)', // Indicador para Coordinación
+        materia_postulada: materiasDelTutor, // Enviamos sus materias actuales como referencia
+        disponibilidad_horaria: horarioLimpio, // El nuevo horario propuesto
+        estado_aprobacion: 'PENDIENTE',
+        fecha_postulacion: new Date().toISOString()
+      };
+
+      // Guardamos la solicitud en Postulaciones
+      await addDoc(collection(this.firestore, 'Postulaciones'), payload);
+
+      // Notificamos a Coordinación
+      await this.dbService.crearNotificacion({
+        titulo: 'Modificación de Horario Solicitada',
+        mensaje: `${this.usuario.nombre} ha solicitado actualizar su horario de tutorías.`,
+        tipo: 'POSTULACION',
+        rol_destino: 'ADMIN',
+        sede_destino: this.usuario.sede
+      });
+
+      this.mostrarAviso('¡Tu propuesta de horario ha sido enviada a Coordinación para su aprobación!', 'exito');
+      this.mostrarModalHorarios = false;
+
     } catch (error) {
-      console.error("Error al guardar horario:", error);
-      this.mostrarAviso('Ocurrió un error al guardar tu nuevo horario.', 'error');
+      console.error("Error al enviar propuesta de horario:", error);
+      this.mostrarAviso('Ocurrió un error al enviar tu propuesta.', 'error');
     } finally {
       this.guardandoHorario = false;
     }

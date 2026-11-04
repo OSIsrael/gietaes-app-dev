@@ -109,9 +109,16 @@
         </ion-button>
       </div>
 
-      <!-- 3. Horarios Ofrecidos -->
+     <!-- 3. Horarios Ofrecidos -->
       <div class="seccion-interna">
-        <h4 class="subtitulo-seccion"><ion-icon name="time-outline"></ion-icon> Disponibilidad Ofrecida:</h4>
+        <!-- 🌟 BOTÓN DE EDITAR AÑADIDO AQUÍ -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h4 class="subtitulo-seccion" style="margin: 0;"><ion-icon name="time-outline"></ion-icon> Disponibilidad Ofrecida:</h4>
+          <ion-button size="small" fill="outline" (click)="abrirModalEditarHorario(estudiante)">
+            <ion-icon name="create-outline" slot="start"></ion-icon> Editar
+          </ion-button>
+        </div>
+
         <div class="horarios-grid">
           <div class="chip-horario" *ngFor="let hora of (estudiante.horarios | keyvalue)">
             <span class="dia">{{ obtenerDia(hora.key) }}</span>
@@ -213,7 +220,7 @@
           </div>
 
           <ion-list *ngIf="!cargandoTutores && tutoresSugeridos.length > 0" style="background: transparent; padding: 0;">
-            <p style="margin: 0 0 15px 0; color: #475569; font-size: 0.85rem; font-weight: 600;">Selecciona un tutor para asignarle la clase:</p>
+            <p style="margin: 0 0 15px 0; color: #475569; font-size: 0.85rem; font-weight: 600;">Selecciona un tutor para asignarle la sesion tutorial:</p>
             
             <ion-item *ngFor="let tutor of tutoresSugeridos" lines="none" style="--background: white; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; --padding-start: 10px;">
               <ion-icon name="person-circle-outline" slot="start" style="color: #003366; font-size: 2rem;"></ion-icon>
@@ -360,7 +367,7 @@
           <!-- 🌟 TUTOR: Siempre visible si tiene el permiso -->
           <ion-item button (click)="irAPanel('/tabs-tutor/tutorias', 'TUTOR')" *ngIf="tienePanelTutor" style="--background: transparent;">
             <ion-icon name="briefcase-outline" slot="start" style="color: #003366;"></ion-icon>
-            <ion-label style="font-weight: 700; color: #003366;">Tutor</ion-label>
+            <ion-label style="font-weight: 700; color: #003366;">Tutor Par</ion-label>
           </ion-item>
           
           <!-- 🌟 COORDINACIÓN: Siempre visible si es Admin o Coordinador -->
@@ -401,5 +408,60 @@
       </ion-content>
     </ng-template>
   </ion-popover>
+<!-- 🌟 MODAL PARA EDITAR HORARIO ANTES DE APROBAR -->
+  <ion-modal [isOpen]="mostrarModalEditarHorario" (didDismiss)="mostrarModalEditarHorario = false" class="modal-gietaes-centrado" style="--width: 95%; --max-width: 800px; --height: 80vh;">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <div style="background: #003366; padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; font-size: 1.1rem; font-weight: 900;">EDITAR HORARIO PROPUESTO</h3>
+          <ion-icon name="close-outline" (click)="mostrarModalEditarHorario = false" style="font-size: 1.5rem; cursor: pointer;"></ion-icon>
+        </div>
+      </ion-header>
+      
+      <ion-content style="--background: #f8fafc;">
+        <div style="padding: 15px;">
+          <!-- Botones de modalidad -->
+          <div style="display: flex; gap: 5px; margin-top: 10px; justify-content: center;">
+            <div (click)="seleccionarModalidadGlobalAdmin('PRESENCIAL')" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid #003366;" [style.background]="modalidadGlobalAdmin === 'PRESENCIAL' ? '#003366' : 'white'" [style.color]="modalidadGlobalAdmin === 'PRESENCIAL' ? 'white' : '#003366'">Presencial</div>
+            <div (click)="seleccionarModalidadGlobalAdmin('VIRTUAL')" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid #003366;" [style.background]="modalidadGlobalAdmin === 'VIRTUAL' ? '#003366' : 'white'" [style.color]="modalidadGlobalAdmin === 'VIRTUAL' ? 'white' : '#003366'">Virtual</div>
+            <div (click)="seleccionarModalidadGlobalAdmin('AMBAS')" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid #003366;" [style.background]="modalidadGlobalAdmin === 'AMBAS' ? '#003366' : 'white'" [style.color]="modalidadGlobalAdmin === 'AMBAS' ? 'white' : '#003366'">Ambas</div>
+          </div>
+          
+          <!-- Tabla de horarios (Con estilos forzados para que no se oculte) -->
+          <div style="margin-top: 20px; overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px;">
+            <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: center;">
+              <thead>
+                <tr>
+                  <th style="padding: 10px; background: #f1f5f9; color: #003366;">Hora</th>
+                  <th *ngFor="let dia of diassemana" style="padding: 10px; background: #f1f5f9; color: #003366;">{{ dia.substring(0,3) }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let franja of franjasHorarias">
+                  <td style="font-size: 0.7rem; font-weight: bold; padding: 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">{{ franja }}</td>
+                  <td *ngFor="let dia of diassemana" 
+                      (click)="seleccionarBloqueAdmin(dia, franja)"
+                      style="border: 1px solid #e2e8f0; cursor: pointer; padding: 5px; position: relative;">
+                    
+                    <!-- Celda Vacía -->
+                    <div *ngIf="!horarioTemporalAdmin[dia + '-' + franja]" style="width: 100%; height: 35px; background: #f8fafc; border-radius: 6px;"></div>
+                    
+                    <!-- Celda Llena -->
+                    <div *ngIf="horarioTemporalAdmin[dia + '-' + franja]" style="width: 100%; height: 35px; background: #EAB308; color: #003366; font-weight: 900; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.8rem;">
+                      {{ horarioTemporalAdmin[dia + '-' + franja] === 'PRESENCIAL' ? 'P' : (horarioTemporalAdmin[dia + '-' + franja] === 'VIRTUAL' ? 'V' : 'P/V') }}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </ion-content>
 
+      <div style="padding: 15px; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; gap: 10px;">
+        <ion-button fill="outline" (click)="mostrarModalEditarHorario = false" style="flex: 1; --color: #475569; --border-color: #cbd5e1; font-weight: bold;">Cancelar</ion-button>
+        <ion-button (click)="guardarHorarioEditado()" style="flex: 1; --background: #003366; font-weight: bold;">Guardar Horario</ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>

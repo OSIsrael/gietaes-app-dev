@@ -160,7 +160,7 @@
     </div>
   </div>
 
-  <!-- ========================================================== -->
+<!-- ========================================================== -->
   <!-- 🌟 MODAL DE AGENDAR NORMAL -->
   <!-- ========================================================== -->
   <div class="overlay" *ngIf="mostrarModal">
@@ -184,7 +184,7 @@
 
       <!-- 🌟 NUEVO SELECTOR DE FECHA EXACTA CON RESTRICCIÓN isDateEnabled -->
       <div style="text-align: left; margin-top: 15px;">
-        <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block;">FECHA EXACTA DE LA CLASE</label>
+        <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block;">FECHA EXACTA DE LA TUTORIA</label>
         <div style="background: white; border-radius: 8px; padding: 2px; margin-bottom: 15px;">
           <ion-item lines="none" style="--background: transparent; display: flex; justify-content: center;">
             <ion-datetime-button datetime="fecha-normal"></ion-datetime-button>
@@ -199,7 +199,7 @@
 
       <!-- 🌟 NUEVO SELECTOR DE MODALIDAD -->
       <div *ngIf="horaSeleccionada" class="animate__animated animate__fadeIn">
-        <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block; text-align: left;">MODALIDAD DE LA CLASE</label>
+        <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block; text-align: left;">MODALIDAD DE LA TUTORIA</label>
         
         <div *ngIf="opcionesModalidad.length === 1" style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px; color: white; font-weight: bold; text-align: center;">
           {{ modalidadElegida }} (Automático)
@@ -210,6 +210,21 @@
             <!-- 🌟 APLICADO POPOVER-BLANCO -->
             <ion-select [(ngModel)]="modalidadElegida" placeholder="Presencial o Virtual" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="color: #003366; font-weight: bold; width: 100%;">
               <ion-select-option *ngFor="let op of opcionesModalidad" [value]="op">{{ op }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </div>
+      </div>
+
+      <!-- 🌟 NUEVO SELECTOR TIPO DE TUTORÍA REQUERIDA (PUNTO 19) -->
+      <div style="text-align: left; margin-top: 15px;">
+        <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block;">TIPO DE TUTORÍA REQUERIDA</label>
+        <div style="background: white; border-radius: 8px; padding: 2px; margin-bottom: 15px;">
+          <ion-item lines="none" style="--background: transparent;">
+            <ion-select [(ngModel)]="tipoTutoriaSeleccionada" placeholder="Selecciona una opción" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="color: #003366; font-weight: bold; width: 100%;">
+              <ion-select-option value="CONSULTA">Tutoría de Consulta</ion-select-option>
+              <ion-select-option value="PROCESO">Tutoría de Proceso</ion-select-option>
+              <ion-select-option value="VERANO">Tutoría Verano</ion-select-option>
+              <ion-select-option value="INTENSIVA">Tutoría Intensiva</ion-select-option>
             </ion-select>
           </ion-item>
         </div>
@@ -252,7 +267,8 @@
 
       <!-- 🌟 BOTÓN CON BLOQUEO ANTI DOBLE CLIC Y SPINNER -->
       <div class="botones-modal">
-        <button class="btn-azul" (click)="confirmarReserva()" [disabled]="!horaSeleccionada || !tipoDerivacion || !docenteBuscado || !modalidadElegida || enviandoReserva" [style.opacity]="(!horaSeleccionada || !tipoDerivacion || !docenteBuscado || !modalidadElegida || enviandoReserva) ? '0.5' : '1'">
+        <!-- 🌟 AGREGAMOS LA VALIDACIÓN PARA tipoTutoriaSeleccionada -->
+        <button class="btn-azul" (click)="confirmarReserva()" [disabled]="!horaSeleccionada || !tipoDerivacion || !docenteBuscado || !modalidadElegida || !tipoTutoriaSeleccionada || enviandoReserva" [style.opacity]="(!horaSeleccionada || !tipoDerivacion || !docenteBuscado || !modalidadElegida || !tipoTutoriaSeleccionada || enviandoReserva) ? '0.5' : '1'">
           <ion-icon *ngIf="!enviandoReserva" name="checkmark-outline"></ion-icon>
           <ion-spinner *ngIf="enviandoReserva" name="crescent" style="color: #003366; width: 24px;"></ion-spinner>
         </button>
@@ -263,7 +279,7 @@
     </div>
   </div>
 
-  <!-- ========================================================== -->
+ <!-- ========================================================== -->
   <!-- 🌟 MODAL DE MATCH AUTOMÁTICO -->
   <!-- ========================================================== -->
   <div class="overlay" *ngIf="mostrarModalInteligente">
@@ -322,8 +338,21 @@
             </ng-template>
           </ion-modal>
         </div>
+        
+        <!-- 🌟 NUEVO SELECTOR TIPO DE TUTORÍA MATCH (PUNTO 19) -->
+        <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block;">5. TIPO DE TUTORÍA REQUERIDA</label>
+        <div style="background: white; border-radius: 8px; padding: 2px; margin-bottom: 15px;">
+          <ion-item lines="none" style="--background: transparent;">
+            <ion-select [(ngModel)]="tipoTutoriaSeleccionada" placeholder="Selecciona una opción" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="color: #003366; font-weight: bold; width: 100%;">
+              <ion-select-option value="CONSULTA">Tutoría de Consulta</ion-select-option>
+              <ion-select-option value="PROCESO">Tutoría de Proceso</ion-select-option>
+              <ion-select-option value="VERANO">Tutoría Verano</ion-select-option>
+              <ion-select-option value="INTENSIVA">Tutoría Intensiva</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </div>
 
-        <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block;">5. MOTIVO DE LA TUTORÍA</label>
+        <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block;">6. MOTIVO DE LA TUTORÍA</label>
         <div style="background: white; border-radius: 8px; padding: 2px; margin-bottom: 15px;">
           <ion-item lines="none" style="--background: transparent;">
             <!-- 🌟 APLICADO POPOVER-BLANCO -->
@@ -338,7 +367,7 @@
         </div>
 
         <div style="text-align: left; margin-bottom: 15px; position: relative; z-index: 99998;">
-          <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block;">6. DOCENTE (APELLIDOS Y NOMBRES)</label>
+          <label style="color: white; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; display: block;">7. DOCENTE (APELLIDOS Y NOMBRES)</label>
           <div style="background: white; border-radius: 8px; padding: 2px;">
             <ion-input [(ngModel)]="docenteBuscado" (ngModelChange)="filtrarDocentes()" placeholder="Ej: PEREZ ZAMBRANO JUAN..." style="color: #003366; font-weight: bold; --padding-start: 10px;"></ion-input>
           </div>
@@ -352,7 +381,8 @@
 
       <!-- 🌟 BOTÓN DE MATCH CON BLOQUEO ANTI DOBLE CLIC Y SPINNER -->
       <div class="botones-modal" style="margin-top: 25px">
-        <button class="btn-blanco" (click)="ejecutarMatchInteligente()" [disabled]="!materiaInteligente || !diaInteligente || !horaInteligente || !tipoDerivacion || !docenteBuscado || enviandoReserva" [style.opacity]="(!materiaInteligente || !diaInteligente || !horaInteligente || !tipoDerivacion || !docenteBuscado || enviandoReserva) ? '0.5' : '1'">
+        <!-- 🌟 AGREGAMOS LA VALIDACIÓN PARA tipoTutoriaSeleccionada -->
+        <button class="btn-blanco" (click)="ejecutarMatchInteligente()" [disabled]="!materiaInteligente || !diaInteligente || !horaInteligente || !tipoDerivacion || !docenteBuscado || !tipoTutoriaSeleccionada || enviandoReserva" [style.opacity]="(!materiaInteligente || !diaInteligente || !horaInteligente || !tipoDerivacion || !docenteBuscado || !tipoTutoriaSeleccionada || enviandoReserva) ? '0.5' : '1'">
           <ion-icon *ngIf="!enviandoReserva" name="checkmark-outline"></ion-icon> 
           <ion-spinner *ngIf="enviandoReserva" name="crescent" style="color: #003366; width: 20px;"></ion-spinner>
           {{ enviandoReserva ? ' ASIGNANDO...' : ' Asignar Tutor' }}
@@ -468,7 +498,7 @@
         <div class="step-item">
           <ion-icon name="checkmark-circle-outline"></ion-icon>
           <div>
-            <strong>4. Confirma tu Cita</strong>
+            <strong>4. Confirma tu Solicitud</strong>
             <p>Toca el horario, completa los datos, y espera a que el tutor te contacte por WhatsApp.</p>
           </div>
         </div>
@@ -491,7 +521,7 @@
           </ion-item>
           <ion-item button (click)="irAPanel('/tabs-tutor/tutorias', 'TUTOR')" *ngIf="tienePanelTutor" style="--background: transparent;">
             <ion-icon name="briefcase-outline" slot="start" style="color: #003366;"></ion-icon>
-            <ion-label style="font-weight: 700; color: #003366;">Tutor</ion-label>
+            <ion-label style="font-weight: 700; color: #003366;">Tutor Par</ion-label>
           </ion-item>
           <ion-item button (click)="irAPanel('/admin-postulaciones', 'COORDINADOR')" *ngIf="tienePanelAdmin" style="--background: transparent;">
             <ion-icon name="shield-checkmark-outline" slot="start" style="color: #003366;"></ion-icon>

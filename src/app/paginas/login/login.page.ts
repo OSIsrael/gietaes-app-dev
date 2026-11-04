@@ -71,7 +71,7 @@ export class LoginPage implements OnInit {
     if (!this.nombres) return null;
     const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
     if (!regex.test(this.nombres)) return { texto: 'Solo se permiten letras', color: 'error' };
-    if (this.nombres.trim().split(' ').length < 2) return { texto: 'Por favor, ingrese sus dos nombres', color: 'advertencia' };
+    if (this.nombres.trim().split(' ').length < 1) return { texto: 'Por favor, ingrese minimo un nombre', color: 'advertencia' };
     return { texto: 'Nombres válidos', color: 'exito' };
   }
 
@@ -80,7 +80,7 @@ export class LoginPage implements OnInit {
     if (!this.apellidos) return null;
     const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
     if (!regex.test(this.apellidos)) return { texto: 'Solo se permiten letras', color: 'error' };
-    if (this.apellidos.trim().split(' ').length < 2) return { texto: 'Por favor, ingrese sus dos apellidos', color: 'advertencia' };
+    if (this.apellidos.trim().split(' ').length < 1) return { texto: 'Por favor, ingrese minimo un apellido', color: 'advertencia' };
     return { texto: 'Apellidos válidos', color: 'exito' };
   }
 

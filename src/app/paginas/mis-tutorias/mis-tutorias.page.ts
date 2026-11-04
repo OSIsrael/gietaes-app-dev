@@ -358,7 +358,7 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
       notificaciones.push({
         id: idBase + 1, 
         title: 'Tienes una tutoría hoy 📅',
-        body: `Recuerda que hoy tienes clase de ${tutoria.materia}. ¡Revisa la app!`,
+        body: `Recuerda que hoy tienes tutoría de ${tutoria.materia}. ¡Revisa la app!`,
         schedule: { at: new Date(tiempoMismoDia) }
       });
     }

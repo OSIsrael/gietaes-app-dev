@@ -179,26 +179,31 @@
       </div>
     </div>
 
-    <!-- 🌟 DATOS DE LA CLASE -->
+ <!-- 🌟 DATOS DE LA TUTORIA -->
     <div *ngIf="!cargando" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #cbd5e1; border-top: 4px solid #003366;">
-      <h3 class="subtitulo-seccion" style="margin-top: 0; color: #003366; font-weight: 900;"><ion-icon name="book-outline"></ion-icon> Datos de la Clase</h3>
-      
-      <div *ngIf="!tutoriaPreCargada">
-        <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Materia Impartida</label>
-        <ion-item lines="none" class="input-moderno mb-3" style="--background: #f8fafc; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
-          <ion-icon slot="start" name="book-outline" style="color: #003366;"></ion-icon>
-          <ion-select [(ngModel)]="form.materia" placeholder="Selecciona la materia" interface="popover" style="width: 100%;">
-            <ion-select-option *ngFor="let mat of materiasTutor" [value]="mat">{{ mat }}</ion-select-option>
-          </ion-select>
-        </ion-item>
+      <h3 class="subtitulo-seccion" style="margin-top: 0; color: #003366; font-weight: 900;"><ion-icon name="book-outline"></ion-icon> Datos de la Tutoría</h3>
+
+      <!-- 🌟 AQUÍ ESTÁ EL TIPO DE TUTORÍA CON BOTÓN EDITAR -->
+      <div style="margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <label style="color: #64748b; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Tipo de Tutoría</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span style="font-weight: 900; color: #003366; font-size: 0.9rem;">{{ form.tipo_tutoria || 'CONSULTA' }}</span>
+          <ion-button fill="clear" size="small" (click)="solicitarCambioTipoTutoria()" style="--color: #003366;">
+            <ion-icon name="create-outline" slot="icon-only" style="font-size: 1.2rem;"></ion-icon>
+          </ion-button>
+        </div>
+        <p *ngIf="form.motivo_cambio_tipo" style="font-size: 0.75rem; color: #d97706; margin: 5px 0 0 0; font-style: italic;">
+          Motivo cambio: {{ form.motivo_cambio_tipo }}
+        </p>
       </div>
 
-      <div *ngIf="tutoriaPreCargada" style="margin-bottom: 15px;">
-        <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Materia de la Tutoría</label>
-        <div style="background: #e0f2fe; padding: 12px; border-radius: 8px; color: #0369a1; font-weight: bold; border: 1px solid #bae6fd; display: flex; align-items: center;">
-          <ion-icon name="book" style="margin-right: 8px; font-size: 1.2rem;"></ion-icon>
-          {{ form.materia }}
-        </div>
+      <!-- 🌟 ESPACIO FÍSICO / AULA -->
+      <div style="margin-bottom: 15px;" *ngIf="form.modalidad === 'Presencial' || tutoriaPreCargada">
+        <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Espacio Físico Usado (Aula / Laboratorio)</label>
+        <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; margin-top: 5px; border: 1px solid #e2e8f0;">
+          <ion-icon slot="start" name="business-outline" style="color: #003366;"></ion-icon>
+          <ion-input [(ngModel)]="form.espacio_fisico" placeholder="Ej: Aula 102, Biblioteca, Lab de Redes..."></ion-input>
+        </ion-item>
       </div>
 
       <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Tema Impartido</label>
@@ -207,17 +212,32 @@
         <ion-textarea [(ngModel)]="form.tema_tratado" rows="2" placeholder="Ej: Vectores en R3..."></ion-textarea>
       </ion-item>
 
-      <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
-        <ion-item lines="none" class="input-moderno" style="flex: 1; padding-top: 8px;">
-          <ion-label position="stacked" style="color: #003366; font-weight: 700; font-size: 0.85rem; margin-bottom: 5px;">
-            <ion-icon name="time-outline" style="vertical-align: text-bottom; font-size: 1.1rem; color: #EAB308;"></ion-icon> 
-            Duración: {{ form.horas }} hr(s)
-          </ion-label>
-          <!-- 🌟 EL LÍMITE DE HORAS SE BAJÓ A 4 COMO PEDISTE -->
-          <ion-range min="1" max="4" step="1" snaps="true" ticks="true" [(ngModel)]="form.horas" style="padding: 0; --knob-background: #EAB308; --bar-background-active: #003366; --bar-background: #cbd5e1;"></ion-range>
+      <!-- 🌟 NUEVA DURACIÓN (Selectores limpios en línea gráfica) -->
+      <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Duración de la Sesión</label>
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; margin-top: 5px;">
+        <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
+          <ion-icon slot="start" name="time-outline" style="color: #003366;"></ion-icon>
+          <ion-select [(ngModel)]="form.horas_duracion" interface="popover" style="width: 100%; color: #003366; font-weight: bold;">
+            <ion-select-option [value]="0">0 horas</ion-select-option>
+            <ion-select-option [value]="1">1 hora</ion-select-option>
+            <ion-select-option [value]="2">2 horas</ion-select-option>
+            <ion-select-option [value]="3">3 horas</ion-select-option>
+            <ion-select-option [value]="4">4 horas</ion-select-option>
+          </ion-select>
         </ion-item>
 
-        <ion-item *ngIf="!tutoriaPreCargada" lines="none" class="input-moderno" style="flex: 1; height: 100%;">
+        <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
+          <ion-select [(ngModel)]="form.minutos_duracion" interface="popover" style="width: 100%; color: #003366; font-weight: bold;">
+            <ion-select-option [value]="0">0 min</ion-select-option>
+            <ion-select-option [value]="15">15 min</ion-select-option>
+            <ion-select-option [value]="30">30 min</ion-select-option>
+            <ion-select-option [value]="45">45 min</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;" *ngIf="!tutoriaPreCargada">
+        <ion-item lines="none" class="input-moderno" style="flex: 1; height: 100%;">
           <ion-icon slot="start" name="barcode-outline" style="color: #003366;"></ion-icon>
           <ion-input [(ngModel)]="form.codigo_tutoria" placeholder="Código (Opcional)"></ion-input>
         </ion-item>
@@ -264,7 +284,7 @@
           </ion-item>
           <ion-item button (click)="irAPanel('/tabs-tutor/tutorias', 'TUTOR')" *ngIf="tienePanelTutor" style="--background: transparent;">
             <ion-icon name="briefcase-outline" slot="start" style="color: #003366;"></ion-icon>
-            <ion-label style="font-weight: 700; color: #003366;">Tutor</ion-label>
+            <ion-label style="font-weight: 700; color: #003366;">Tutor Par</ion-label>
           </ion-item>
           <ion-item button (click)="irAPanel('/admin-postulaciones', 'COORDINADOR')" *ngIf="tienePanelAdmin" style="--background: transparent;">
             <ion-icon name="shield-checkmark-outline" slot="start" style="color: #003366;"></ion-icon>

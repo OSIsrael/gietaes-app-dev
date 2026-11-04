@@ -31,7 +31,7 @@
 
 <ion-content class="fondo-app">
   <div class="ion-padding" style="padding-bottom: 200px;">
-    <h2 class="titulo-azul">CLASES A IMPARTIR:</h2>
+    <h2 class="titulo-azul">TUTORÍAS A IMPARTIR:</h2>
 
     <p *ngIf="cargando" style="text-align: center; color: #666; margin-top: 30px;">Cargando tu agenda docente...</p>
     
@@ -50,7 +50,7 @@
       <ol style="margin: 0; padding-left: 25px; color: #475569; font-size: 0.85rem; line-height: 1.6;">
         <li style="margin-bottom: 6px;">Seleccione el <strong>indicador de color</strong> para CONFIRMAR o CANCELAR la solicitud de tutoría.</li>
         <li style="margin-bottom: 6px;"><strong>Deslice la tarjeta</strong> hacia los lados para contactar al estudiante vía WhatsApp y coordinar la logística.</li>
-        <li style="margin-bottom: 6px;">El registro de asistencia solo se habilitará cuando la clase esté en estado <strong>CONFIRMADA</strong>.</li>
+        <li style="margin-bottom: 6px;">El registro de asistencia solo se habilitará cuando la tutoría esté en estado <strong>CONFIRMADA</strong>.</li>
       </ol>
     </div>
 
@@ -86,7 +86,7 @@
                 </div>
               </div>
 
-              <!-- 🌟 DETALLES DE CLASE ACTUALIZADO -->
+              <!-- 🌟 DETALLES DE TUTORIA ACTUALIZADO -->
               <p style="margin-bottom: 2px; font-size: 0.8rem; color: #475569;">
                 <ion-icon name="calendar-outline" style="vertical-align: middle;"></ion-icon> 
                 Fecha: {{ t.fecha_exacta ? (t.fecha_exacta + ' | ' + t.dia) : t.dia }}
@@ -175,7 +175,7 @@
         <h3>PANEL DE TUTOR</h3>
       </div>
       <div class="modal-body text-left">
-        <p class="modal-desc" style="text-align: center;">¡Bienvenido a tu panel! Aquí gestionarás tus clases:</p>
+        <p class="modal-desc" style="text-align: center;">¡Bienvenido a tu panel! Aquí gestionarás tus tutorías:</p>
         <div class="step-item">
           <ion-icon name="checkmark-circle-outline"></ion-icon>
           <div>
@@ -194,7 +194,7 @@
           <ion-icon name="document-text-outline"></ion-icon>
           <div>
             <strong>3. Registra Asistencia</strong>
-            <p>Al terminar la clase, ve a la pestaña "Asistencia" para registrar la sesión y sumar horas a tus estadísticas.</p>
+            <p>Al terminar la tutoría, ve a la pestaña "Asistencia" para registrar la sesión y sumar horas a tus estadísticas.</p>
           </div>
         </div>
       </div>
@@ -333,7 +333,7 @@
           </ion-item>
           <ion-item button (click)="irAPanel('/tabs-tutor/tutorias', 'TUTOR')" *ngIf="tienePanelTutor" style="--background: transparent;">
             <ion-icon name="briefcase-outline" slot="start" style="color: #003366;"></ion-icon>
-            <ion-label style="font-weight: 700; color: #003366;">Tutor</ion-label>
+            <ion-label style="font-weight: 700; color: #003366;">Tutor Par</ion-label>
           </ion-item>
           <ion-item button (click)="irAPanel('/admin-postulaciones', 'COORDINADOR')" *ngIf="tienePanelAdmin" style="--background: transparent;">
             <ion-icon name="shield-checkmark-outline" slot="start" style="color: #003366;"></ion-icon>

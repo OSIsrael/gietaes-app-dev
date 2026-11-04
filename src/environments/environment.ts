@@ -5,15 +5,17 @@
 export const environment = {
   production: false,
   firebaseConfig: {
-    apiKey: "AIzaSyAvnBpTmxMWKb8jiaT39_VlFfV5Jl4KtRk",
-  authDomain: "gietaes-sandbox.firebaseapp.com",
-  projectId: "gietaes-sandbox",
-  storageBucket: "gietaes-sandbox.firebasestorage.app",
-  messagingSenderId: "1078259011145",
-  appId: "1:1078259011145:web:7bb88d45fb44667610b998"
+    apiKey: "AIzaSyAJrXAXxNdhBwpr6Gi2KOHZJQvBRAKVaj4",
+  authDomain: "gietaes-dev.firebaseapp.com",
+  projectId: "gietaes-dev",
+  storageBucket: "gietaes-dev.firebasestorage.app",
+  messagingSenderId: "94164573199",
+  appId: "1:94164573199:web:b84b4dcecb84b9cf05d77a"
      }
  
 };
+// Import the functions you need from the SDKs you need
+
 
 /*
  * For easier debugging in development mode, you can import the following file

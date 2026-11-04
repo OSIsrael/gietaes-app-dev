@@ -76,7 +76,7 @@
                 <span [style.color]="t.estado === 'REQUIERE_ADMIN' ? '#f97316' : '#EAB308'">{{ t.nombreContacto }}</span>
               </p>
 
-              <!-- 🌟 INFORMACIÓN COMPLETA DE LA CLASE -->
+              <!-- 🌟 INFORMACIÓN COMPLETA DE LA TUTORIA -->
               <p style="margin-bottom: 5px;">
                 <ion-icon name="calendar-outline"></ion-icon> {{ t.fecha_exacta || t.dia }} | 
                 <ion-icon name="time-outline"></ion-icon> {{ t.hora }}
@@ -89,7 +89,7 @@
               <!-- 🌟 INDICADOR DE PERSONAS UNIDAS -->
               <div *ngIf="t.cantidadUnidos > 0 && t.estado !== 'REQUIERE_ADMIN'" style="display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: bold; margin-top: 5px;">
                 <ion-icon name="people-outline" style="margin-right: 5px; font-size: 1rem;"></ion-icon>
-                {{ t.cantidadUnidos }} invitado(s) unido(s) a la clase
+                {{ t.cantidadUnidos }} invitado(s) unido(s) a la tutoría.
               </div>
 
               <!-- 🌟 ESTADO DE DERIVACIÓN (PUNTO 2) -->
@@ -132,7 +132,7 @@
     <div class="guia-codigo" style="margin-top: 15px; margin-bottom: 30px; background: rgba(0, 51, 102, 0.04); padding: 15px; border-radius: 12px; border: 1px solid rgba(0, 51, 102, 0.1);">
       <h4 style="color: #003366; font-size: 0.95rem; font-weight: 800; margin-top: 0; margin-bottom: 12px; display: flex; align-items: center;">
         <ion-icon name="information-circle" style="font-size: 1.4rem; color: #EAB308; margin-right: 6px;"></ion-icon>
-        ¿Cómo unirse a una clase grupal?
+        ¿Cómo unirse a una tutoría grupal?
       </h4>
       <ol style="margin: 0; padding-left: 25px; color: #555; font-size: 0.85rem; line-height: 1.6;">
         <li style="margin-bottom: 6px;">Solicite al organizador el código de registro correspondiente a la tutoría <b>(Ej: MAT-1234)</b>.</li>
@@ -164,7 +164,7 @@
     <ng-template>
       <div style="display: flex; flex-direction: column; background: #ffffff; border-radius: 20px; overflow: hidden;">
         <div style="background: #003366; padding: 18px 20px; border-bottom: 4px solid #EAB308; display: flex; justify-content: space-between; align-items: center;">
-          <h3 style="color: #ffffff; font-size: 1.15rem; font-weight: 900; margin: 0; letter-spacing: 0.5px;">UNIRSE A UNA CLASE</h3>
+          <h3 style="color: #ffffff; font-size: 1.15rem; font-weight: 900; margin: 0; letter-spacing: 0.5px;">UNIRSE A UNA TUTORIA</h3>
           <ion-icon name="close-outline" (click)="cerrarOpcionesUnirse()" style="font-size: 2rem; color: #ffffff; cursor: pointer; opacity: 0.8;"></ion-icon>
         </div>
         <div style="padding: 25px 20px; background: #f8fafc;">
@@ -200,7 +200,7 @@
         </div>
         <h2 style="color: #003366; font-weight: 900; margin-top: 0; text-align: center;">ÚNETE A MI TUTORÍA</h2>
         <p style="color: #64748b; text-align: center; font-size: 0.9rem; margin-bottom: 25px;">
-          Muestra este código QR a tus compañeros para que lo escaneen y se unan a esta clase.
+          Muestra este código QR a tus compañeros para que lo escaneen y se unan a esta tutoría.
         </p>
         <div style="background: white; padding: 15px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 2px solid #EAB308;">
           <img [src]="'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + codigoQRGenerado" alt="Código QR" style="width: 220px; height: 220px;" />
@@ -227,7 +227,7 @@
           </ion-item>
           <ion-item button (click)="irAPanel('/tabs-tutor/tutorias', 'TUTOR')" *ngIf="tienePanelTutor" style="--background: transparent;">
             <ion-icon name="briefcase-outline" slot="start" style="color: #003366;"></ion-icon>
-            <ion-label style="font-weight: 700; color: #003366;">Tutor</ion-label>
+            <ion-label style="font-weight: 700; color: #003366;">Tutor Par</ion-label>
           </ion-item>
           <ion-item button (click)="irAPanel('/admin-postulaciones', 'COORDINADOR')" *ngIf="tienePanelAdmin" style="--background: transparent;">
             <ion-icon name="shield-checkmark-outline" slot="start" style="color: #003366;"></ion-icon>

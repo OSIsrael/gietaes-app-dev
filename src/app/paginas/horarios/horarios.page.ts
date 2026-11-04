@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef,NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, collection, getDocs, query, where, updateDoc, doc } from '@angular/fire/firestore';
@@ -36,6 +36,7 @@ export class HorariosPage implements OnInit {
   private router = inject(Router); 
   private cdr = inject(ChangeDetectorRef);
   private auth = inject(Auth); 
+  private ngZone = inject(NgZone);
 
   mostrarModalRenovacionEstudiante: boolean = false;
   nuevoCicloEstudiante: number = 1;
@@ -45,6 +46,7 @@ export class HorariosPage implements OnInit {
   horaSeleccionada: string = '';
   modalidadElegida: string = '';       
   opcionesModalidad: string[] = [];    
+  tipoTutoriaSeleccionada: string = '';
 
   enviandoReserva: boolean = false;
   fechaExactaTutoria: string = new Date().toISOString();
@@ -178,12 +180,12 @@ async ionViewWillEnter() {
           
           // 🌟 SOLUCIÓN: FIREBASE ES LA ÚNICA AUTORIDAD
           // Si Firebase dice que es false o no existe, mostramos el modal obligatoriamente.
-          if (datosUsr['terminos_aceptados'] !== true) {
+         // 🌟 CAMBIA ESTA CONDICIÓN:
+          if (datosUsr['terminos_aceptados'] === false || datosUsr['terminos_aceptados'] === undefined || datosUsr['terminos_aceptados'] === null) {
             this.mostrarModalTerminos = true;
-            localStorage.removeItem('terminos_aceptados'); // Borramos el caché del navegador por si acaso estaba mintiendo
-          } 
+          }
           // 🌟 PRIORIDAD 2: RENOVACIÓN DE CICLO
-          else if (datosUsr['ultimo_periodo_activo'] !== this.periodoApp) {
+          else if (datosUsr['ultimo_periodo_activo'] !== this.periodoApp && this.rolUsuario !== 'ADMIN' && this.rolUsuario !== 'COORDINADOR') {
             this.mostrarModalRenovacionEstudiante = true;
           }
         }
@@ -486,13 +488,15 @@ async ionViewWillEnter() {
     this.horaSeleccionada = '';
     this.modalidadElegida = '';
     this.opcionesModalidad = [];
+    this.tipoTutoriaSeleccionada = '';
   }
 
-  async confirmarReserva() {
+ async confirmarReserva() {
     if (this.enviandoReserva) return; 
     if (!this.reservaActual) return;
     if (!this.horaSeleccionada) { this.mostrarAviso('Por favor, selecciona una hora específica para la tutoría.', 'advertencia'); return; }
     if (this.opcionesModalidad.length > 1 && !this.modalidadElegida) { this.mostrarAviso('Por favor, selecciona la modalidad de la tutoría.', 'advertencia'); return; }
+    if (!this.tipoTutoriaSeleccionada) { this.mostrarAviso('Por favor, indica el tipo de tutoría que necesitas.', 'advertencia'); return; } // 🌟 NUEVA VALIDACIÓN
     if (!this.tipoDerivacion && !this.reservaActual.tipo_derivacion) { this.mostrarAviso('Por favor, indica el motivo de la tutoría.', 'advertencia'); return; }
     if (!this.docenteBuscado && !this.reservaActual.docente) { this.mostrarAviso('Por favor, busca y selecciona un docente.', 'advertencia'); return; }
 
@@ -518,6 +522,7 @@ async ionViewWillEnter() {
         modalidad: this.modalidadElegida, 
         sedeTutor: this.reservaActual.tutorSede, 
         codigo: this.dbService.generarCodigoTutoria(this.reservaActual.materia),
+        tipo_tutoria: this.tipoTutoriaSeleccionada, // 🌟 NUEVO
         tipo_derivacion: this.tipoDerivacion || this.reservaActual.tipo_derivacion || 'DECISIÓN PROPIA',
         docente: this.docenteBuscado || this.reservaActual.docente || 'No especificado'
       };
@@ -528,7 +533,7 @@ async ionViewWillEnter() {
         if (this.dbService.crearNotificacion) {
           await this.dbService.crearNotificacion({
             titulo: 'Nueva Solicitud de Tutoría',
-            mensaje: `${this.nombreUsuario} ha solicitado una clase ${this.modalidadElegida} de ${this.reservaActual.materia} el ${fechaCorta} a las ${horaLimpia}.`, 
+            mensaje: `${this.nombreUsuario} ha solicitado una tutoria ${this.modalidadElegida} de ${this.reservaActual.materia} el ${fechaCorta} a las ${horaLimpia}.`, 
             tipo: 'TUTORIA',
             correo_destino: this.reservaActual.correoTutor,
             sede_destino: 'GLOBAL',
@@ -608,10 +613,7 @@ async ionViewWillEnter() {
       this.enviandoEvaluacion = false;
     }
   }
-// ==========================================
-  // 🌟 ACEPTACIÓN DE TÉRMINOS Y CONDICIONES (CIERRE FORZOSO)
-  // ==========================================
-  async aceptarTerminos() {
+async aceptarTerminos() {
     if (!this.aceptaTerminosCheckbox) return;
     this.guardandoTerminos = true;
 
@@ -621,35 +623,28 @@ async ionViewWillEnter() {
       if (this.rolUsuario === 'TUTOR') coleccionActual = 'Tutores';
       if (this.rolUsuario === 'ADMIN' || this.rolUsuario === 'COORDINADOR') coleccionActual = 'Administradores';
 
-      const documentoId = this.usuarioDocId || correo;
+      // 🌟 USA ESTRICTAMENTE el ID que capturó el ionViewWillEnter
+      const documentoId = this.usuarioDocId;
 
-      // 1. Guardamos en Firebase (La fuente de la verdad)
       if (documentoId) {
-        await updateDoc(doc(this.firestore, coleccionActual, documentoId), { terminos_aceptados: true });
+        await updateDoc(doc(this.firestore, coleccionActual, documentoId), { 
+          terminos_aceptados: true 
+        });
+        console.log("Términos actualizados con éxito en el documento ID:", documentoId);
+      } else {
+        console.error("¡CUIDADO! No se encontró el ID del documento en el ionViewWillEnter");
       }
 
-      // 2. Guardamos en caché
       localStorage.setItem('terminos_aceptados', 'true');
 
     } catch (error) {
       console.error("Error al guardar términos en Firebase:", error);
-      // Aunque falle, aseguramos el caché
-      localStorage.setItem('terminos_aceptados', 'true');
     } finally {
-      // 3. 🌟 INNEGOCIABLE: Se cierra el modal sí o sí
       this.mostrarModalTerminos = false;
       this.guardandoTerminos = false;
-
-      // 4. Forzamos la actualización visual para que Angular "entienda" que se cerró
-      if (this.cdr) this.cdr.detectChanges();
-
-      // 5. 🌟 ENCADENAMIENTO: Evaluamos si hay que lanzar la renovación del ciclo
-      if (this.datosEstudianteActual && this.datosEstudianteActual['ultimo_periodo_activo'] !== this.periodoApp) {
-        setTimeout(() => {
-          this.mostrarModalRenovacionEstudiante = true;
-          if (this.cdr) this.cdr.detectChanges();
-        }, 300); // Pequeño retraso para que el cierre del primer modal se vea fluido
-      }
+      
+      // Forzamos recarga limpia para aplicar los cambios en caliente
+      window.location.reload();
     }
   }
 
@@ -681,6 +676,7 @@ async ionViewWillEnter() {
     this.horaInteligente = ''; this.materiasSugeridas = []; this.diasDisponiblesInteligente = [];
     this.horasDisponiblesInteligente = []; this.tipoDerivacion = ''; this.docenteBuscado = ''; this.docentesFiltrados = [];
     this.fechaExactaTutoria = new Date().toISOString(); 
+    this.tipoTutoriaSeleccionada = '';
   }
 
   buscarMateriaInteligente(event?: any) {

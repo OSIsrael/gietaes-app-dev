@@ -308,7 +308,7 @@ export class TutorTutoriasPage implements OnInit {
       if (this.dbService.crearNotificacion) {
         await this.dbService.crearNotificacion({
           titulo: `Tutoría ${nuevoEstado}`,
-          mensaje: `El tutor ha marcado tu clase de ${tutoria.materia} como ${nuevoEstado}.`,
+          mensaje: `El tutor ha marcado tu tutoría de ${tutoria.materia} como ${nuevoEstado}.`,
           tipo: 'TUTORIA',
           correo_destino: tutoria.correoEstudiante || 'sin_correo',
           rol_destino: 'ESTUDIANTE' 
@@ -362,7 +362,7 @@ export class TutorTutoriasPage implements OnInit {
     if (tiempo1Hora > ahora) {
       notificaciones.push({
         id: idBase + 50, 
-        title: '¡Clase a punto de empezar! ⏰',
+        title: '¡Tutoría a punto de empezar! ⏰',
         body: `En 1 hora impartirás ${tutoria.materia} a ${tutoria.nombreEstudiante}.`,
         schedule: { at: new Date(tiempo1Hora) }
       });
@@ -375,7 +375,7 @@ export class TutorTutoriasPage implements OnInit {
     if (tiempoMismoDia > ahora && tiempoMismoDia < tiempo1Hora) {
       notificaciones.push({
         id: idBase + 51, 
-        title: 'Hoy tienes clases programadas ',
+        title: 'Hoy tienes tutorías programadas ',
         body: `Hoy impartirás una tutoría de ${tutoria.materia} a ${tutoria.nombreEstudiante}.`,
         schedule: { at: new Date(tiempoMismoDia) }
       });
@@ -398,7 +398,7 @@ export class TutorTutoriasPage implements OnInit {
 
   async cancelarTutoriaInteligente(tutoria: any) {
     const confirmar = await this.confirmarAccion(
-      '¿Estás seguro de CANCELAR esta clase?',
+      '¿Estás seguro de CANCELAR esta tutoría?',
       'El sistema buscará automáticamente otro tutor disponible en este mismo horario.'
     );
     if (!confirmar) return;

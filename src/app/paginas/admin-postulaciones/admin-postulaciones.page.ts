@@ -67,6 +67,8 @@ export class AdminPostulacionesPage {
   tienePanelAdmin: boolean = false;
   hayNotificacionesSinLeer: boolean = false;
 
+  
+
   enviandoAnuncio: boolean = false; // 🌟 BLOQUEO DE MULTI-ENVÍO
 
   nuevoAnuncio = {
@@ -87,6 +89,47 @@ export class AdminPostulacionesPage {
     if (this.rolUsuario === 'ADMIN' || this.rolUsuario === 'COORDINADOR') return 'COORDINACIÓN';
     if (this.rolUsuario === 'TUTOR') return 'TUTOR';
     return 'ESTUDIANTE';
+  }
+  // 🌟 VARIABLES PARA EDITAR HORARIO
+  mostrarModalEditarHorario: boolean = false;
+  estudianteEditando: any = null;
+  horarioTemporalAdmin: any = {};
+  modalidadGlobalAdmin: string = 'PRESENCIAL';
+  diassemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  franjasHorarias = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00', '20:00 - 22:00'];
+
+  // 🌟 FUNCIONES PARA EDITAR HORARIO
+  abrirModalEditarHorario(estudiante: any) {
+    this.estudianteEditando = estudiante;
+    this.horarioTemporalAdmin = { ...estudiante.horarios }; 
+    this.mostrarModalEditarHorario = true;
+  }
+
+  seleccionarModalidadGlobalAdmin(mod: string) {
+    this.modalidadGlobalAdmin = mod;
+  }
+
+  seleccionarBloqueAdmin(dia: string, franja: string) {
+    const clave = `${dia}-${franja}`;
+    if (this.horarioTemporalAdmin[clave]) {
+      delete this.horarioTemporalAdmin[clave];
+    } else {
+      this.horarioTemporalAdmin[clave] = this.modalidadGlobalAdmin;
+    }
+  }
+
+  guardarHorarioEditado() {
+    if (this.estudianteEditando) {
+      // 1. Actualiza visualmente en la tarjeta
+      this.estudianteEditando.horarios = { ...this.horarioTemporalAdmin };
+      
+      // 2. Inyecta este horario en las postulaciones para que la función ACEPTAR lo tome
+      this.estudianteEditando.materias_postuladas.forEach((postulacion: any) => {
+        postulacion.horarios = { ...this.horarioTemporalAdmin };
+      });
+    }
+    this.mostrarModalEditarHorario = false;
+    this.mostrarAviso('Horario ajustado. Presiona ACEPTAR en una materia para confirmar y guardarlo en la base de datos.', 'info');
   }
 
   constructor() {
@@ -268,7 +311,7 @@ export class AdminPostulacionesPage {
     if (!celular) return;
     let celFormateado = celular.replace(/\D/g, ''); 
     if (celFormateado.startsWith('0')) celFormateado = '593' + celFormateado.substring(1);
-    const mensaje = encodeURIComponent(`Hola ${nombre}, te escribimos de Coordinación de Tutorías. Hubo un inconveniente con el tutor asignado, pero ya te estamos buscando un reemplazo para tu clase.`);
+    const mensaje = encodeURIComponent(`Hola ${nombre}, te escribimos de Coordinación de Tutorías. Hubo un inconveniente con el tutor asignado, pero ya te estamos buscando un reemplazo para tu tutoría.`);
     window.open(`https://wa.me/${celFormateado}?text=${mensaje}`, '_blank');
   }
 
@@ -433,15 +476,40 @@ async aceptar(post: any) {
       // 1. Procesamos la aceptación en la Base de Datos
       await this.dbService.aceptarTutor(post.id, post);
       
+      // 🌟 NUEVO: Transferir los horarios propuestos al documento oficial del tutor
+      try {
+        // Buscamos el documento del tutor recién aceptado/actualizado
+        const qTutor = query(collection(this.firestore, 'Tutores'), where('correo', '==', post.correo));
+        const snapTutor = await getDocs(qTutor);
+        
+        if (!snapTutor.empty) {
+          const tutorId = snapTutor.docs[0].id;
+          
+          // Extraemos los horarios propuestos en la postulación (si existen)
+          const horariosPropuestos = post.horarios || post.disponibilidad_horaria || {};
+          
+          if (Object.keys(horariosPropuestos).length > 0) {
+            // Actualizamos el documento del tutor con los nuevos horarios
+            await updateDoc(doc(this.firestore, 'Tutores', tutorId), {
+              horarios: horariosPropuestos,
+              estado_horario: 'APROBADO' // Marcador interno para saber que coordinación lo validó
+            });
+            console.log("Horarios propuestos transferidos con éxito al perfil oficial del tutor.");
+          }
+        }
+      } catch (errorHorarios) {
+        console.warn('Postulación aceptada, pero hubo un error al transferir los horarios:', errorHorarios);
+      }
+      
       // 2. 🌟 Enviamos la Notificación de ÉXITO al estudiante
       try {
         await this.dbService.crearNotificacion({
           titulo: '¡Postulación Aprobada! 🎉',
-          mensaje: `¡Felicidades! Tu solicitud para impartir "${post.materia_postulada}" ha sido aceptada. Ya puedes ver tu panel de tutor.`,
+          mensaje: `¡Felicidades! Tu solicitud para impartir "${post.materia_postulada}" ha sido aceptada. Tu horario propuesto ya está activo.`,
           tipo: 'POSTULACION',
-          correo_destino: post.correo, // 🌟 Clave: Solo a él
+          correo_destino: post.correo, 
           sede_destino: post.sede,
-          rol_destino: 'ESTUDIANTE' // 🌟 Corregido (antes decía 'TODOS')
+          rol_destino: 'ESTUDIANTE' 
         });
       } catch (e) {
         console.warn('Postulación aceptada, pero falló la notificación', e);

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { 
   IonContent, IonHeader, IonToolbar, IonIcon, IonButton, IonButtons,
-  IonItem, IonLabel, IonSelect, IonSelectOption, IonTextarea, IonInput, IonList, IonRange,  ToastController, AlertController, IonPopover
+  IonItem, IonLabel, IonSelect, IonSelectOption, IonTextarea, IonInput, IonList, ToastController, AlertController, IonPopover
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -25,7 +25,7 @@ import { Auth, signOut } from '@angular/fire/auth';
   imports: [
     CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
     IonIcon, IonButton, IonButtons, IonItem, IonLabel, 
-    IonSelect, IonSelectOption, IonTextarea, IonInput, IonList, IonRange,  IonPopover
+    IonSelect, IonSelectOption, IonTextarea, IonInput, IonList,  IonPopover
   ]
 })
 export class TutorAsistenciaPage implements OnInit {
@@ -69,11 +69,18 @@ export class TutorAsistenciaPage implements OnInit {
   form = {
     materia: '',
     tema_tratado: '',
-    horas: 1, 
+    horas_duracion: 1, 
+    minutos_duracion: 0,
     asistio: '',
     participo: '',
     codigo_tutoria: '',
-    calificacion_tutor: 0 // 🌟 NUEVO: OBLIGATORIO PARA EL TUTOR
+    calificacion_tutor: 0, // 🌟 NUEVO: OBLIGATORIO PARA EL TUTOR
+    tipo_tutoria: 'CONSULTA',         // 🌟 NUEVO
+    motivo_cambio_tipo: '',           // 🌟 NUEVO
+    espacio_fisico: '',               // 🌟 NUEVO
+    duracion_ios: '01:00',
+    modalidad: 'Presencial' // 🌟 AÑADE ESTA LÍNEA AQUÍ
+
   };
 
   get iconoRolActual(): string {
@@ -151,7 +158,12 @@ export class TutorAsistenciaPage implements OnInit {
     this.tutoriaPreCargada = true;
     this.form.materia = master.materia;
     this.form.codigo_tutoria = master.codigo !== 'SIN CÓDIGO' ? master.codigo : '';
-    
+    this.form.modalidad = master.modalidad || 'Presencial';           // 🌟 CAPTURAMOS MODALIDAD
+    this.form.tipo_tutoria = master.tipo_tutoria || 'CONSULTA';
+    this.form.motivo_cambio_tipo = master.motivo_cambio_tipo || '';
+    this.form.espacio_fisico = master.espacio_fisico || '';
+    this.form.duracion_ios = master.duracion_ios || '01:00';
+
     this.estudiantesSeleccionados.push({
       info: `${master.nombreEstudiante} (Solicitante)`,
       nombre: master.nombreEstudiante,
@@ -252,7 +264,7 @@ export class TutorAsistenciaPage implements OnInit {
 
   async enviarRegistro() {
     if (this.tutoriaPreCargada) {
-      if (!this.form.tema_tratado || !this.form.horas) {
+      if (!this.form.tema_tratado || (this.form.horas_duracion === 0 && this.form.minutos_duracion === 0)) {
         this.mostrarAviso("Debes completar el Tema Impartido y las Horas.", 'advertencia');
         return;
       }
@@ -275,14 +287,32 @@ export class TutorAsistenciaPage implements OnInit {
       const promesas = [];
       const todosLosEstudiantes = [...this.estudiantesSeleccionados, ...this.estudiantesInvitados];
 
+      // 🌟 1. Formateamos el tiempo y construimos el texto enriquecido para Google Sheets
+      const tiempoFormateado = `${this.form.horas_duracion}h ${this.form.minutos_duracion}m`;
+      
+      const temaEnriquecido = `Tema: ${this.form.tema_tratado || 'No especificado'}
+Tipo de Tutoría: ${this.form.tipo_tutoria || 'CONSULTA'}
+Motivo (si cambió): ${this.form.motivo_cambio_tipo || 'Ninguno'}
+Aula/Espacio: ${this.form.espacio_fisico || 'N/A'}`;
+
       for (const est of todosLosEstudiantes) {
         if (est.asistio === 'SI') {
           const reporte = {
             correoTutor: this.correoTutor,
             nombreTutor: this.nombreTutor,
             materia: this.form.materia,
-            tema_tratado: this.form.tema_tratado || 'No especificado',
-            horas: this.form.horas || 1,
+            
+            // 🌟 Datos adaptados para Google Sheets (Tema completo y tiempo como texto)
+            tema_tratado: temaEnriquecido,
+            horas: tiempoFormateado,
+
+            // Datos independientes para la base de datos de Firebase
+            horas_duracion: this.form.horas_duracion,
+            minutos_duracion: this.form.minutos_duracion,
+            espacio_fisico: this.form.espacio_fisico || 'N/A',   
+            tipo_tutoria: this.form.tipo_tutoria,               
+            motivo_cambio_tipo: this.form.motivo_cambio_tipo || 'Ninguno',
+            
             asistio: est.asistio, 
             participo: est.participo, 
             codigo_tutoria: this.form.codigo_tutoria || 'SIN CÓDIGO',
@@ -290,7 +320,7 @@ export class TutorAsistenciaPage implements OnInit {
             nombre_docente: est.docente || 'No especificado', 
             derivacion: est.derivacion || 'DECISIÓN PROPIA',          
             fecha_registro: new Date().toISOString(),
-            calificacion_tutor: this.form.calificacion_tutor // 🌟 ENVIAMOS LAS ESTRELLAS DEL TUTOR AL EXCEL
+            calificacion_tutor: this.form.calificacion_tutor
           };
           promesas.push(this.dbService.guardarAsistencia(reporte));
 
@@ -316,7 +346,24 @@ export class TutorAsistenciaPage implements OnInit {
 
       this.mostrarAviso(`Asistencia registrada. Tus alumnos deberán evaluarte.`, 'exito');
       
-      this.form = { materia: '', tema_tratado: '', horas: 1, asistio: '', participo: '', codigo_tutoria: '', calificacion_tutor: 0 };
+      // 🌟 Reseteo completo del formulario con sus valores por defecto
+    // 🌟 Reseteo completo del formulario con sus valores por defecto
+      this.form = { 
+        materia: '', 
+        tema_tratado: '', 
+        horas_duracion: 1, 
+        minutos_duracion: 0, 
+        asistio: '', 
+        participo: '', 
+        codigo_tutoria: '', 
+        calificacion_tutor: 0, 
+        tipo_tutoria: 'CONSULTA', 
+        motivo_cambio_tipo: '', 
+        espacio_fisico: '', 
+        duracion_ios: '01:00', // 🌟 Propiedad añadida para satisfacer a TypeScript
+        modalidad: 'Presencial' 
+      };
+      
       this.estudiantesSeleccionados = [];
       this.estudiantesInvitados = []; 
       this.busquedaEstudiante = '';
@@ -342,5 +389,35 @@ export class TutorAsistenciaPage implements OnInit {
       message: mensaje, duration: 4000, position: 'top', icon: icono, cssClass: `toast-premium-gietaes ${claseCss}`, mode: 'ios' 
     });
     await toast.present();
+  }
+async solicitarCambioTipoTutoria() {
+    const alert = await this.alertController.create({
+      header: 'Cambiar Tipo de Tutoría',
+      message: '¿Estás seguro de que deseas modificar el tipo de tutoría? Indica el nuevo tipo y el motivo.',
+      cssClass: 'alerta-premium-gietaes',
+      inputs: [
+        { name: 'nuevoTipo', type: 'radio', label: 'Tutoría de Consulta', value: 'CONSULTA', checked: this.form.tipo_tutoria === 'CONSULTA' },
+        { name: 'nuevoTipo', type: 'radio', label: 'Tutoría de Proceso', value: 'PROCESO', checked: this.form.tipo_tutoria === 'PROCESO' },
+        { name: 'nuevoTipo', type: 'radio', label: 'Tutoría Práctica', value: 'PRACTICA', checked: this.form.tipo_tutoria === 'PRACTICA' },
+        { name: 'nuevoTipo', type: 'radio', label: 'Tutoría Intensiva', value: 'INTENSIVA', checked: this.form.tipo_tutoria === 'INTENSIVA' },
+        { name: 'motivo', type: 'textarea', placeholder: 'Motivo del cambio (ej. El tema requirió práctica)...' }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: (data) => {
+            if (!data.nuevoTipo || !data.motivo || data.motivo.trim() === '') {
+              this.mostrarAviso('Debes seleccionar un tipo y escribir un motivo.', 'advertencia');
+              return false;
+            }
+            this.form.tipo_tutoria = data.nuevoTipo;
+            this.form.motivo_cambio_tipo = data.motivo;
+            return true;
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 }
