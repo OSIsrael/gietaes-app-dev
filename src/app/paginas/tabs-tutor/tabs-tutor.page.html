@@ -8,8 +8,8 @@
       <ion-label>Tutorías</ion-label>
     </ion-tab-button>
 
-    <!-- 2. Registro de Asistencia -->
-    <ion-tab-button tab="asistencia">
+    <!-- 2. Registro de Asistencia (Oculta por defecto, visible solo al pulsar "Tomar Asistencia") -->
+    <ion-tab-button tab="asistencia" *ngIf="tutorEstado.mostrarTabAsistencia$ | async">
       <ion-icon name="checkbox-outline"></ion-icon>
       <ion-label>Asistencia</ion-label>
     </ion-tab-button>

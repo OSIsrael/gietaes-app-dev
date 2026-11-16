@@ -13,14 +13,14 @@ import {
 import { DatabaseService } from '../../services/database';
 import { Router } from '@angular/router'; 
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Firestore, collection, query, where, getDocs, doc, deleteDoc, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, getDocs, doc, deleteDoc } from '@angular/fire/firestore';
 import { Auth, signOut } from '@angular/fire/auth'; 
-import jsQR from 'jsqr'; // 🌟 IMPORTACIÓN DE LA LIBRERÍA WEB DE QR
+import jsQR from 'jsqr';
 
 import { 
   IonContent, IonIcon, IonHeader, IonToolbar, IonButtons, IonButton,
-  IonItemSliding, IonItemOptions, IonItemOption, IonItem, IonList,IonModal,IonLabel,ToastController,AlertController, ActionSheetController,
-  IonPopover, 
+  IonItemSliding, IonItemOptions, IonItemOption, IonItem, IonList, IonModal, IonLabel, ToastController, AlertController,
+  IonPopover
 } from '@ionic/angular/standalone';
 
 @Component({
@@ -30,7 +30,7 @@ import {
   standalone: true,
   imports: [
     IonContent, IonIcon, CommonModule, FormsModule, IonHeader, IonToolbar,
-    IonButtons, IonButton, IonItemSliding, IonItemOptions, IonItemOption, IonItem, IonList,IonModal,IonLabel,
+    IonButtons, IonButton, IonItemSliding, IonItemOptions, IonItemOption, IonItem, IonList, IonModal, IonLabel,
     IonPopover 
   ]
 })
@@ -54,11 +54,18 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
 
   mostrarModalCodigo: boolean = false;
   codigoIngresado: string = '';
+  uniendose: boolean = false;
+
+  // Variables para búsqueda de docente al unirse por código/QR
+  sedeUsuario: string = 'CUENCA';
+  docentesExcel: string[] = [];
+  docenteBuscado: string = '';
+  docentesFiltrados: string[] = [];
   
   mostrarModalMiQR: boolean = false;
   codigoQRGenerado: string = '';
 
-  // 🌟 VARIABLES PARA LA CÁMARA WEB
+  // Variables para la cámara web
   scanActive: boolean = false; 
   @ViewChild('videoElement', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
   canvasElement!: HTMLCanvasElement;
@@ -88,7 +95,15 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
   }
 
   constructor() {
-    addIcons({personCircleOutline,helpCircleOutline,swapHorizontalOutline,notificationsOutline,chatbubblesOutline,bookOutline,logoWhatsapp,trashOutline,addOutline,informationCircle,checkmarkOutline,closeOutline,schoolOutline,briefcaseOutline,shieldCheckmarkOutline,mailOutline,businessOutline,settingsOutline,logOutOutline,peopleOutline,filterOutline, qrCodeOutline, scanOutline, keypadOutline, closeCircleOutline, chevronDownOutline, searchOutline, timeOutline, calendarOutline, informationCircleOutline});
+    addIcons({
+      personCircleOutline, helpCircleOutline, swapHorizontalOutline, notificationsOutline,
+      chatbubblesOutline, bookOutline, logoWhatsapp, trashOutline, addOutline,
+      informationCircle, checkmarkOutline, closeOutline, schoolOutline, briefcaseOutline,
+      shieldCheckmarkOutline, mailOutline, businessOutline, settingsOutline, logOutOutline,
+      peopleOutline, filterOutline, qrCodeOutline, scanOutline, keypadOutline,
+      closeCircleOutline, chevronDownOutline, searchOutline, timeOutline, calendarOutline,
+      informationCircleOutline
+    });
   }
 
   ngOnInit() {
@@ -99,42 +114,27 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
     this.correoUsuario = localStorage.getItem('correo') || '';
     this.rolUsuario = (localStorage.getItem('rol') || 'ESTUDIANTE').toUpperCase();
     this.nombreUsuario = localStorage.getItem('nombre') || '';
-    const sede = localStorage.getItem('sede') || 'CUENCA';
+    this.sedeUsuario = (localStorage.getItem('sede') || 'CUENCA').toUpperCase();
     
     this.tienePanelTutor = localStorage.getItem('tienePanelTutor') === 'true';
     this.tienePanelAdmin = localStorage.getItem('tienePanelAdmin') === 'true';
 
-    await this.verificarNotificaciones(this.correoUsuario, this.rolUsuario, sede);
+    await this.verificarNotificaciones(this.correoUsuario, this.rolUsuario, this.sedeUsuario);
     await this.cargarPermisosPaneles(this.correoUsuario); 
     await this.cargarMisTutorias();
+
+    this.docentesExcel = await this.dbService.obtenerDocentesDesdeExcel(this.sedeUsuario);
   }
 
   // ==========================================
-  // 🌟 MÉTODOS PARA MENÚS DE CABECERA Y ROLES
+  // MÉTODOS PARA MENÚS DE CABECERA Y ROLES
   // ==========================================
   async cargarPermisosPaneles(correo: string) {
     if (!correo) return;
     try {
-      const adminSnap = await getDoc(doc(this.firestore, 'Administradores', correo));
-      if (adminSnap.exists()) {
-        this.tienePanelAdmin = true;
-        this.tienePanelTutor = true;
-      }
-      const tutorSnap = await getDoc(doc(this.firestore, 'Tutores', correo));
-      if (tutorSnap.exists()) {
-        this.tienePanelTutor = true;
-      }
-      const estSnap = await getDoc(doc(this.firestore, 'Estudiantes', correo));
-      if (estSnap.exists()) {
-        const rolDB = String(estSnap.data()['rol'] || estSnap.data()['Rol'] || '').toUpperCase().trim();
-        if (rolDB === 'TUTOR') this.tienePanelTutor = true;
-        if (rolDB === 'COORDINADOR' || rolDB === 'ADMIN') {
-          this.tienePanelTutor = true;
-          this.tienePanelAdmin = true;
-        }
-      }
-      localStorage.setItem('tienePanelTutor', this.tienePanelTutor ? 'true' : 'false');
-      localStorage.setItem('tienePanelAdmin', this.tienePanelAdmin ? 'true' : 'false');
+      const permisos = await this.dbService.obtenerPermisosPaneles(correo);
+      this.tienePanelTutor = permisos.tienePanelTutor;
+      this.tienePanelAdmin = permisos.tienePanelAdmin;
     } catch (error) {
       console.error("Error consultando permisos:", error);
     }
@@ -171,7 +171,7 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
   irANotificaciones() { this.router.navigate(['/notificaciones']); }
 
   // ==========================================
-  // 🌟 CARGA DE TUTORÍAS Y LECTURA DE GRUPOS
+  // VERIFICACIÓN DE NOTIFICACIONES Y CARGA DE TUTORÍAS
   // ==========================================
   async verificarNotificaciones(correo: string, rol: string, sede: string) {
     try {
@@ -181,23 +181,22 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
     } catch (error) {}
   }
 
- async cargarMisTutorias() {
+  async cargarMisTutorias() {
     this.cargando = true;
     this.tutorias = []; 
 
     try {
-      const qEstudiante = query(collection(this.firestore, 'Reservas'), where('correoEstudiante', '==', this.correoUsuario));
+      const correoLimpio = (this.correoUsuario || localStorage.getItem('correo') || '').toLowerCase().trim();
+      const qEstudiante = query(collection(this.firestore, 'Reservas'), where('correoEstudiante', '==', correoLimpio));
       const snapshot = await getDocs(qEstudiante);
       
-      // Consultamos toda la tabla para contar cuántos se han unido a cada código
       const qTotalReservas = query(collection(this.firestore, 'Reservas'));
       const snapshotTotal = await getDocs(qTotalReservas);
       const conteoPorCodigo: { [codigo: string]: number } = {};
 
-      snapshotTotal.forEach(doc => {
-        const codigoClase = doc.data()['codigo'];
+      snapshotTotal.forEach(docSnap => {
+        const codigoClase = docSnap.data()['codigo'];
         if (codigoClase && codigoClase !== 'SIN CÓDIGO') {
-          // Contamos a todos (incluyendo al dueño), por lo que restaremos 1 luego
           conteoPorCodigo[codigoClase] = (conteoPorCodigo[codigoClase] || 0) + 1;
         }
       });
@@ -207,34 +206,35 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
 
       for (const documento of snapshot.docs) {
         const res = documento.data();
-        
-        // Verificamos si la fecha exacta ya pasó para eliminarla de la bandeja
-        if (res['fecha_solicitud'] && res['dia_elegido'] !== 'Por definir') {
-          const fechaExactaDeLaClase = this.calcularFechaExacta(res['fecha_solicitud'], res['dia_elegido'] || res['dia'], res['hora_elegida'] || res['hora']);
-          fechaExactaDeLaClase.setHours(23, 59, 59, 999);
+        const estadoActual = String(res['estado'] || '').toUpperCase().trim();
 
-          if (fechaExactaDeLaClase.getTime() < hoy.getTime()) {
-            await deleteDoc(doc(this.firestore, 'Reservas', documento.id));
-            continue; 
+        if (estadoActual === 'CANCELADA' || estadoActual === 'FINALIZADA') continue;
+
+        if (res['fecha_exacta']) {
+          const soloFecha = String(res['fecha_exacta']).split('T')[0];
+          const partes = soloFecha.split('-').map(Number);
+          if (partes.length === 3 && !isNaN(partes[0]) && !isNaN(partes[1]) && !isNaN(partes[2])) {
+            const fechaClaseFinDia = new Date(partes[0], partes[1] - 1, partes[2], 23, 59, 59, 999);
+            if (fechaClaseFinDia.getTime() < hoy.getTime()) {
+              await deleteDoc(doc(this.firestore, 'Reservas', documento.id));
+              continue;
+            }
           }
         }
-
-        if (res['estado'] === 'CANCELADA') continue; 
 
         let colorEstado = '#fde047'; 
         let nombreTutorMostrar = res['nombreTutor'];
         let celularTutorMostrar = res['celularTutor'];
 
-        if (res['estado'] === 'CONFIRMADA' || res['estado'] === 'ACEPTADA') colorEstado = '#34d399'; 
+        if (estadoActual === 'CONFIRMADA' || estadoActual === 'ACEPTADA') colorEstado = '#34d399'; 
 
-        if (res['estado'] === 'REQUIERE_ADMIN') {
+        if (estadoActual === 'REQUIERE_ADMIN') {
           colorEstado = '#f97316'; 
           nombreTutorMostrar = 'Asignando nuevo tutor...';
           celularTutorMostrar = null; 
         }
 
         const codigoEval = res['codigo'] || 'SIN CÓDIGO';
-        // 🌟 CALCULAMOS LA CANTIDAD DE INVITADOS (Total inscritos al código - 1 el propio estudiante)
         const cantidadUnidos = codigoEval !== 'SIN CÓDIGO' ? (conteoPorCodigo[codigoEval] - 1) : 0;
 
         const tutoriaFormateada = {
@@ -243,9 +243,9 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
           codigo: codigoEval,
           dia: res['dia_elegido'] || res['dia'] || 'Por definir',
           hora: res['hora_elegida'] || res['hora'] || 'Por definir',
-          fecha_exacta: res['fecha_exacta'] || '', // 🌟 LEE LA FECHA EXACTA
-          modalidad: res['modalidad'] || 'Presencial', // 🌟 LEE LA MODALIDAD
-          cantidadUnidos: cantidadUnidos > 0 ? cantidadUnidos : 0, // 🌟 GUARDA LA CANTIDAD DE INVITADOS
+          fecha_exacta: res['fecha_exacta'] || '',
+          modalidad: res['modalidad'] || 'Presencial',
+          cantidadUnidos: cantidadUnidos > 0 ? cantidadUnidos : 0,
           color: colorEstado,
           estado: res['estado'],
           celularContacto: celularTutorMostrar, 
@@ -256,14 +256,16 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
 
         this.tutorias.push(tutoriaFormateada);
 
-        if (res['estado'] === 'CONFIRMADA' || res['estado'] === 'ACEPTADA') {
+        if (estadoActual === 'CONFIRMADA' || estadoActual === 'ACEPTADA') {
           this.programarRecordatorios(tutoriaFormateada);
         }
       }
     } catch (error) {
       console.error("Error cargando la base de datos:", error);
+    } finally {
+      this.cargando = false;
+      if (this.cdr) this.cdr.detectChanges();
     }
-    this.cargando = false;
   }
 
   calcularFechaExacta(fechaSolISO: string, diaSemana: string, horaRango: string): Date {
@@ -287,7 +289,7 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
 
   contactarWhatsApp(celular: string, codigoPais: string, nombre: string, materia: string) {
     if (!celular || celular === 'No registrado') {
-      this.mostrarAviso("No hay número de contacto disponible.",'error');
+      this.mostrarAviso("No hay número de contacto disponible.", 'error');
       return;
     }
     let celFormateado = celular.replace(/\D/g, ''); 
@@ -302,7 +304,7 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
   }
 
   async cancelarTutoria(tutoria: any) {
-    const confirmar = await this.confirmarAccion(`¿Estás seguro de cancelar tu solicitud de tutoría para ${tutoria.materia}?`,'');
+    const confirmar = await this.confirmarAccion(`¿Estás seguro de cancelar tu solicitud de tutoría para ${tutoria.materia}?`, '');
     if (!confirmar) return;
 
     try {
@@ -315,10 +317,10 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
         tipo: 'CANCELACION',
         sede_destino: localStorage.getItem('sede') || 'GLOBAL'
       });
-      this.mostrarAviso('Tutoría cancelada. El tutor ha sido notificado.','info');
+      this.mostrarAviso('Tutoría cancelada. El tutor ha sido notificado.', 'info');
       await this.cargarMisTutorias(); 
     } catch (error) {
-      this.mostrarAviso('Error al cancelar la tutoría.','error');
+      this.mostrarAviso('Error al cancelar la tutoría.', 'error');
     }
   }
 
@@ -333,7 +335,7 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
   }
 
   async programarRecordatorios(tutoria: any) {
-    if(tutoria.dia === 'Por definir' || tutoria.hora === 'Por definir') return;
+    if (tutoria.dia === 'Por definir' || tutoria.hora === 'Por definir') return;
 
     const fechaTutoria = this.calcularProximaFechaDesdeHoy(tutoria.dia, tutoria.hora);
     const ahora = new Date().getTime();
@@ -394,6 +396,9 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
 
   opcionCodigoManualElegido() {
     this.cerrarOpcionesUnirse();
+    this.codigoIngresado = '';
+    this.docenteBuscado = '';
+    this.docentesFiltrados = [];
     this.mostrarModalCodigo = true;
   }
 
@@ -411,32 +416,87 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
     this.codigoQRGenerado = '';
   }
 
-  abrirModalCodigo() { this.mostrarModalCodigo = true; }
-  cerrarModalCodigo() { this.mostrarModalCodigo = false; this.codigoIngresado = ''; }
+  abrirModalCodigo() {
+    this.codigoIngresado = '';
+    this.docenteBuscado = '';
+    this.docentesFiltrados = [];
+    this.mostrarModalCodigo = true;
+  }
 
-  async unirsePorCodigo() {
-    if (!this.codigoIngresado || this.codigoIngresado.trim() === '') {
-      this.mostrarAviso('Por favor, ingresa un código válido.','advertencia');
+  cerrarModalCodigo() {
+    this.mostrarModalCodigo = false;
+    this.codigoIngresado = '';
+    this.docenteBuscado = '';
+    this.docentesFiltrados = [];
+  }
+
+  // ==========================================
+  // BÚSQUEDA DE DOCENTE Y UNIRSE POR CÓDIGO
+  // ==========================================
+  filtrarDocentes() {
+    const txt = (this.docenteBuscado || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    if (!txt) {
+      this.docentesFiltrados = [];
       return;
     }
+    this.docentesFiltrados = this.docentesExcel
+      .filter((d: string) => d.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(txt))
+      .slice(0, 5);
+  }
+
+  seleccionarDocente(docente: string) {
+    this.docenteBuscado = docente;
+    this.docentesFiltrados = [];
+  }
+
+  async unirsePorCodigo() {
+    if (this.uniendose) return;
+
+    if (!this.codigoIngresado || this.codigoIngresado.trim() === '') {
+      this.mostrarAviso('Por favor, ingresa un código válido.', 'advertencia');
+      return;
+    }
+
+    if (!this.docenteBuscado || this.docenteBuscado.trim() === '') {
+      this.mostrarAviso('Por favor, busca y selecciona el docente de tu asignatura.', 'advertencia');
+      return;
+    }
+
+    this.uniendose = true;
     this.cargando = true;
-    const resultado = await this.dbService.unirseATutoriaPorCodigo(this.codigoIngresado, this.correoUsuario, this.nombreUsuario || 'Estudiante');
-    this.mostrarAviso(resultado.mensaje,'info');
-    if (resultado.exito) {
-      this.cerrarModalCodigo();
-      await this.cargarMisTutorias(); 
-    } else {
-      this.cargando = false; 
+
+    try {
+      const resultado = await this.dbService.unirseATutoriaPorCodigo(
+        this.codigoIngresado,
+        this.correoUsuario,
+        this.nombreUsuario || 'Estudiante',
+        this.sedeUsuario,
+        this.docenteBuscado.trim()
+      );
+
+      if (resultado.exito) {
+        this.mostrarAviso(resultado.mensaje, 'exito');
+        this.cerrarModalCodigo();
+        await this.cargarMisTutorias();
+      } else {
+        this.mostrarAviso(resultado.mensaje, 'error');
+        this.cargando = false;
+      }
+    } catch (error) {
+      this.mostrarAviso('Error al procesar la solicitud.', 'error');
+      this.cargando = false;
+    } finally {
+      this.uniendose = false;
     }
   }
 
   // ==========================================
-  // 🌟 LÓGICA DE LA CÁMARA PARA ESCANEAR QR (NATIVA WEB / NAVEGADOR)
+  // LÓGICA DE LA CÁMARA PARA ESCANEAR QR (NATIVA WEB / jsQR)
   // ==========================================
   activarEscanerWeb() {
     this.cerrarOpcionesUnirse();
     this.scanActive = true;
-    this.cdr.detectChanges(); // Forzamos el render para que exista el videoElement
+    this.cdr.detectChanges();
 
     setTimeout(async () => {
       try {
@@ -445,7 +505,7 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
         
         if (this.videoElement && this.videoElement.nativeElement) {
           this.videoElement.nativeElement.srcObject = stream;
-          this.videoElement.nativeElement.setAttribute("playsinline", "true"); // Requiere Safari/iOS
+          this.videoElement.nativeElement.setAttribute("playsinline", "true");
           this.videoElement.nativeElement.play();
           
           this.canvasElement = document.createElement("canvas");
@@ -473,16 +533,18 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
       const imageData = this.canvasContext.getImageData(0, 0, this.canvasElement.width, this.canvasElement.height);
       const codigoEncontrado = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
-      if (codigoEncontrado) {
-        // Detenemos la cámara
+      if (codigoEncontrado && codigoEncontrado.data) {
         this.detenerEscanerWeb();
-        this.codigoIngresado = codigoEncontrado.data; // Aquí guardamos el código leído
-        this.unirsePorCodigo(); // Y ejecutamos el proceso de unirse directamente
+        this.codigoIngresado = codigoEncontrado.data.toUpperCase().trim();
+        this.docenteBuscado = '';
+        this.docentesFiltrados = [];
+        this.mostrarModalCodigo = true;
+        this.mostrarAviso('Código QR detectado. Selecciona tu docente para unirte.', 'info');
+        if (this.cdr) this.cdr.detectChanges();
         return;
       }
     }
     
-    // Si no encontró nada, sigue buscando en el siguiente frame
     requestAnimationFrame(this.escanearCuadro.bind(this));
   }
 
@@ -499,7 +561,7 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // 🌟 ALERTAS NATIVAS
+  // ALERTAS NATIVAS
   // ==========================================
   async mostrarAviso(mensaje: string, tipo: 'exito' | 'error' | 'advertencia' | 'info' = 'exito') {
     let icono = 'checkmark-circle-outline';

@@ -2,11 +2,11 @@ import {
   o
 } from "./chunk-JOQNI6T3.js";
 import {
-  s
-} from "./chunk-Q7PV5YUG.js";
-import {
   b
 } from "./chunk-HVCJX4YE.js";
+import {
+  s
+} from "./chunk-Q7PV5YUG.js";
 import "./chunk-OFUKQRVO.js";
 import "./chunk-K4KU7J5H.js";
 
@@ -34,4 +34,4 @@ var s2 = (s3, e, n, a, c) => {
 export {
   s2 as createSwipeBackGesture
 };
-//# sourceMappingURL=p-Sh0ICmPV-VJMFHJQY.js.map
+//# sourceMappingURL=p-Sh0ICmPV-JVSGYK25.js.map

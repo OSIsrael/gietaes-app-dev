@@ -33,7 +33,7 @@
     <p *ngIf="cargando" style="text-align: center; color: #666;">Cargando tus tutorías...</p>
     <p *ngIf="!cargando && tutorias.length === 0" style="text-align: center; color: #666;">Aún no tienes tutorías en tu historial.</p>
 
-    <!-- 🌟 GUÍA FORMAL (PUNTO 3) -->
+    <!-- GUÍA FORMAL -->
     <div class="guia-contacto" *ngIf="!cargando && tutorias.length > 0" style="margin-bottom: 25px; background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2);">
       <h4 style="color: #003366; font-size: 0.95rem; font-weight: 800; margin-top: 0; margin-bottom: 12px; display: flex; align-items: center;">
         <ion-icon name="information-circle-outline" style="font-size: 1.4rem; color: #10b981; margin-right: 6px;"></ion-icon>
@@ -46,7 +46,7 @@
       </ol>
     </div>
 
-    <!-- TARJETAS DESLIZABLES (PUNTO 1 Y 2) -->
+    <!-- TARJETAS DESLIZABLES -->
     <ion-list style="background: transparent;" lines="none" *ngIf="!cargando">
       <ion-item-sliding *ngFor="let t of tutorias" style="background: transparent; margin-bottom: 15px;">
         
@@ -66,7 +66,7 @@
         <ion-item style="--padding-start: 0; --inner-padding-end: 0; --background: transparent;">
           <div class="tarjeta-azul" style="width: 100%; margin: 0;">
             <div class="icono-blanco">
-                <ion-icon [name]="t.estado === 'REQUIERE_ADMIN' ? 'search-outline' : 'book-outline'"></ion-icon>
+              <ion-icon [name]="t.estado === 'REQUIERE_ADMIN' ? 'search-outline' : 'book-outline'"></ion-icon>
             </div>
             <div class="info-texto">
               <h3>{{ t.materia }} <span *ngIf="t.codigo && t.codigo !== 'SIN CÓDIGO'">( {{ t.codigo }} )</span></h3>
@@ -76,7 +76,6 @@
                 <span [style.color]="t.estado === 'REQUIERE_ADMIN' ? '#f97316' : '#EAB308'">{{ t.nombreContacto }}</span>
               </p>
 
-              <!-- 🌟 INFORMACIÓN COMPLETA DE LA TUTORIA -->
               <p style="margin-bottom: 5px;">
                 <ion-icon name="calendar-outline"></ion-icon> {{ t.fecha_exacta || t.dia }} | 
                 <ion-icon name="time-outline"></ion-icon> {{ t.hora }}
@@ -86,22 +85,18 @@
                 <ion-icon name="business-outline"></ion-icon> Modalidad: {{ t.modalidad || 'Presencial' }}
               </p>
 
-              <!-- 🌟 INDICADOR DE PERSONAS UNIDAS -->
               <div *ngIf="t.cantidadUnidos > 0 && t.estado !== 'REQUIERE_ADMIN'" style="display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: bold; margin-top: 5px;">
                 <ion-icon name="people-outline" style="margin-right: 5px; font-size: 1rem;"></ion-icon>
                 {{ t.cantidadUnidos }} invitado(s) unido(s) a la tutoría.
               </div>
 
-              <!-- 🌟 ESTADO DE DERIVACIÓN (PUNTO 2) -->
               <div *ngIf="t.estado === 'REQUIERE_ADMIN'" style="background: rgba(239, 68, 68, 0.2); border-left: 3px solid #ef4444; padding: 8px; margin-top: 8px; border-radius: 4px;">
                 <p style="font-size: 0.7rem; color: #fca5a5; font-style: italic; font-weight: bold; line-height: 1.2;">
-                  * Tu solicitud está siendo gestionada por el área de Coordinación para asignarte un nuevo tutor.
+                  - Tu solicitud está siendo gestionada por el área de Coordinación para asignarte un nuevo tutor.
                 </p>
               </div>
-
             </div>
             
-            <!-- 🌟 PUNTO DE ESTADO (Cambia a amarillo si está en revisión) -->
             <div class="punto-estado" [style.background]="t.estado === 'REQUIERE_ADMIN' ? '#fde047' : t.color"></div>
           </div>
         </ion-item>
@@ -137,7 +132,7 @@
       <ol style="margin: 0; padding-left: 25px; color: #555; font-size: 0.85rem; line-height: 1.6;">
         <li style="margin-bottom: 6px;">Solicite al organizador el código de registro correspondiente a la tutoría <b>(Ej: MAT-1234)</b>.</li>
         <li style="margin-bottom: 6px;">Presione el botón de adición <b>(+)</b> y seleccione la opción de ingreso manual o escaneo de código QR.</li>
-        <li>El sistema procesará la solicitud y lo integrará a la sesión programada.</li>
+        <li>Seleccione el docente de su asignatura para completar su inscripción en la sesión programada.</li>
       </ol>
     </div>
 
@@ -148,18 +143,56 @@
     </div>
   </div>
 
-  <!-- MODALES EXTRAS (MANUAL, OPCIONES Y QR) SE MANTIENEN IGUALES -->
+  <!-- MODAL PARA INGRESAR CÓDIGO Y DOCENTE (#2 y #13) -->
   <div class="overlay" *ngIf="mostrarModalCodigo">
-    <div class="modal-amarillo animate__animated animate__zoomIn">
-      <h3>INGRESA EL CÓDIGO:</h3>
-      <input type="text" placeholder="MAT-1234" class="input-codigo" [(ngModel)]="codigoIngresado">
+    <div class="modal-amarillo animate__animated animate__zoomIn" style="width: 92%; max-width: 380px; padding: 24px 18px;">
+      <h3>UNIRSE A TUTORÍA</h3>
+
+      <div style="text-align: left; margin-bottom: 14px;">
+        <label style="display: block; color: #003366; font-size: 0.8rem; font-weight: 800; margin-bottom: 5px; text-transform: uppercase;">
+          1. Código de la Tutoría:
+        </label>
+        <input 
+          type="text" 
+          placeholder="Ej: MAT-1234" 
+          class="input-codigo" 
+          [(ngModel)]="codigoIngresado"
+          style="width: 100%; margin-bottom: 0; text-transform: uppercase;">
+      </div>
+
+      <div style="text-align: left; margin-bottom: 20px; position: relative;">
+        <label style="display: block; color: #003366; font-size: 0.8rem; font-weight: 800; margin-bottom: 5px; text-transform: uppercase;">
+          2. Docente de la Asignatura ({{ sedeUsuario }}):
+        </label>
+        <input 
+          type="text" 
+          placeholder="Busca y selecciona tu docente..." 
+          [(ngModel)]="docenteBuscado" 
+          (input)="filtrarDocentes()"
+          style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 2px solid #003366; background: #ffffff; color: #003366; font-weight: 700; font-size: 0.9rem; outline: none;">
+
+        <div *ngIf="docentesFiltrados.length > 0" style="background: #ffffff; border: 2px solid #003366; border-radius: 10px; margin-top: 5px; max-height: 150px; overflow-y: auto; box-shadow: 0 6px 15px rgba(0,0,0,0.18);">
+          <div 
+            *ngFor="let doc of docentesFiltrados" 
+            (click)="seleccionarDocente(doc)"
+            style="padding: 10px 12px; color: #003366; font-size: 0.85rem; font-weight: 700; border-bottom: 1px solid #e2e8f0; cursor: pointer;">
+            {{ doc }}
+          </div>
+        </div>
+      </div>
+
       <div class="botones-modal">
-        <button class="btn-azul" (click)="unirsePorCodigo()"><ion-icon name="checkmark-outline"></ion-icon></button>
-        <button class="btn-azul" (click)="cerrarModalCodigo()"><ion-icon name="close-outline"></ion-icon></button>
+        <button class="btn-azul" (click)="unirsePorCodigo()" [disabled]="uniendose" [style.opacity]="uniendose ? '0.6' : '1'">
+          <ion-icon name="checkmark-outline"></ion-icon>
+        </button>
+        <button class="btn-azul" (click)="cerrarModalCodigo()" [disabled]="uniendose">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
       </div>
     </div>
   </div>
 
+  <!-- MODAL OPCIONES PARA UNIRSE (QR / MANUAL) -->
   <ion-modal [isOpen]="mostrarOpcionesUnirse" (didDismiss)="cerrarOpcionesUnirse()" class="modal-gietaes-centrado">
     <ng-template>
       <div style="display: flex; flex-direction: column; background: #ffffff; border-radius: 20px; overflow: hidden;">
@@ -192,6 +225,7 @@
     </ng-template>
   </ion-modal>
 
+  <!-- MODAL PARA MOSTRAR MI QR -->
   <ion-modal [isOpen]="mostrarModalMiQR" (didDismiss)="cerrarModalMiQR()" class="modal-gietaes-centrado">
     <ng-template>
       <div style="display: flex; flex-direction: column; background: #ffffff; height: 100%; align-items: center; justify-content: center; padding: 20px;">
@@ -215,7 +249,7 @@
     </ng-template>
   </ion-modal>
 
-  <!-- 🌟 POPOVERS DE LA CABECERA -->
+  <!-- POPOVERS DE LA CABECERA -->
   <ion-popover [isOpen]="menuRolAbierto" [event]="eventoRol" (didDismiss)="menuRolAbierto = false" mode="ios" style="--background: #ffffff; --width: 220px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
     <ng-template>
       <ion-content class="ion-padding-vertical" style="--background: #ffffff;">
@@ -261,9 +295,7 @@
 
 </ion-content>
 
-<!-- ========================================== -->
-<!-- 🌟 INTERFAZ DE LA CÁMARA (API WEB - jsQR) -->
-<!-- ========================================== -->
+<!-- INTERFAZ DE LA CÁMARA (API WEB - jsQR) -->
 <div *ngIf="scanActive" class="interfaz-escaner animate__animated animate__fadeIn">
   <div class="video-container">
     <video #videoElement autoplay playsinline></video>

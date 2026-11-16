@@ -188,41 +188,53 @@ ion-popover.popover-premium-gietaes {
   }
 }
 
-/* 2. Estilo para el Calendario (ion-datetime) */
 .calendario-gietaes {
-  /* 🌟 ESTO APAGA EL MODO OSCURO PARA EL CALENDARIO Y HACE VISIBLES LOS NÚMEROS */
   color-scheme: light !important;
-
-  /* Fondos Obligatorios */
   --background: #ffffff !important;
   --background-rgb: 255,255,255 !important;
   background: #ffffff !important;
   
-  /* Textos Principales */
   color: #0f172a !important;
   --color: #0f172a !important;
   --title-color: #003366 !important;
   --ion-text-color: #0f172a !important;
 
-  /* Color principal GIETAES (Azul oscuro para selecciones y círculo) */
   --ion-color-base: #003366 !important;
   --ion-color-primary: #003366 !important;
   --ion-color-primary-rgb: 0,51,102 !important;
 
-  /* Configuración del selector de la HORA */
-  --wheel-item-color: #0f172a !important; /* Números de la hora oscuros */
+  --wheel-item-color: #0f172a !important; 
   --wheel-fade-background-rgb: 255,255,255 !important;
-  --wheel-highlight-background: rgba(234, 179, 8, 0.25) !important; /* Cinta dorada */
+  --wheel-highlight-background: rgba(234, 179, 8, 0.25) !important; 
   
   border-radius: 12px;
 }
 
-/* Forzar que los días del calendario sean negros */
+/* Días disponibles del día de la semana elegido */
 .calendario-gietaes::part(calendar-day) {
-  color: #0f172a;
+  color: #003366 !important;
+  font-weight: 800 !important;
+  background: #eff6ff;
+  border-radius: 50%;
 }
 
-/* Forzar los botones de Cancelar / Confirmar */
+/* Día seleccionado (máximo contraste) */
+.calendario-gietaes::part(calendar-day active) {
+  background: #003366 !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  border: 2px solid #EAB308 !important;
+  box-shadow: 0 4px 10px rgba(0, 51, 102, 0.35) !important;
+}
+
+/* Días deshabilitados de otros días de la semana */
+.calendario-gietaes::part(calendar-day disabled) {
+  color: #94a3b8 !important;
+  background: transparent !important;
+  font-weight: 400 !important;
+  opacity: 0.4 !important;
+}
+
 .calendario-gietaes::part(cancel-button),
 .calendario-gietaes::part(confirm-button) {
   color: #003366 !important;
@@ -513,4 +525,109 @@ ion-tab-button:active ion-icon {
 body.scanner-active {
   background: transparent !important;
   --background: transparent !important;
+}
+/* ========================================================
+   SOLUCIÓN LIMPIA Y NATIVA (MODALES, TABS Y ALERTAS)
+   ======================================================== */
+
+ion-tab-bar {
+  z-index: 10 !important;
+}
+
+ion-modal.modal-fondo-transparente {
+  --background: transparent;
+  --box-shadow: none;
+  --width: 100%;
+  --height: 100%;
+  --max-width: 100%;
+  --max-height: 100%;
+  --border-radius: 0;
+}
+
+ion-modal.modal-fondo-transparente::part(content) {
+  background: transparent;
+  box-shadow: none;
+}
+
+ion-modal.modal-fondo-transparente::part(backdrop) {
+  display: none;
+}
+.alerta-premium-gietaes {
+  --background: #ffffff !important;
+  --color: #003366 !important;
+
+  .alert-title,
+  .alert-message,
+  .alert-radio-label,
+  .alert-input {
+    color: #003366 !important;
+    font-weight: 600;
+  }
+
+  .alert-input::placeholder {
+    color: #64748b !important;
+  }
+}
+/* Fuerza modo claro y texto nítido en todos los selectores */
+ion-select {
+  color: #003366 !important;
+  --placeholder-color: #64748b !important;
+  --placeholder-opacity: 1 !important;
+  opacity: 1 !important;
+}
+
+/* Modal centrado estilo GIETAES */
+ion-modal.modal-gietaes-proceso {
+  --width: 94%;
+  --max-width: 440px;
+  --height: auto;
+  --max-height: 88vh;
+  --border-radius: 16px;
+  --box-shadow: 0 15px 35px rgba(0, 51, 102, 0.25);
+  --background: #ffffff;
+}
+
+/* Calendario nativo alineado a la línea gráfica GIETAES */
+ion-datetime {
+  --background: #ffffff;
+  --background-rgb: 255, 255, 255;
+  --title-color: #003366;
+  --wheel-highlight-background: rgba(234, 179, 8, 0.15);
+  --wheel-fade-background-rgb: 255, 255, 255;
+  color: #003366;
+  color-scheme: light;
+  border-radius: 10px;
+}
+
+ion-datetime::part(calendar-day active),
+ion-datetime::part(calendar-day):focus {
+  background-color: #003366;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+ion-datetime::part(calendar-day today) {
+  color: #d97706;
+  font-weight: 900;
+}
+
+/* Desplegables blancos con texto azul marino y acento dorado */
+::ng-deep .popover-blanco-gietaes {
+  --background: #ffffff !important;
+  --color: #003366 !important;
+  color-scheme: light;
+}
+
+::ng-deep .popover-blanco-gietaes ion-content,
+::ng-deep .popover-blanco-gietaes ion-list,
+::ng-deep .popover-blanco-gietaes ion-item {
+  --background: #ffffff !important;
+  --color: #003366 !important;
+  color: #003366 !important;
+  font-weight: 700;
+}
+
+::ng-deep .popover-blanco-gietaes ion-radio {
+  --color: #003366 !important;
+  --color-checked: #EAB308 !important;
 }

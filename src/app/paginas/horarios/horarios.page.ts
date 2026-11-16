@@ -1,11 +1,11 @@
-import { Component, OnInit, inject, ChangeDetectorRef,NgZone } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Firestore, collection, getDocs, query, where, updateDoc, doc } from '@angular/fire/firestore';
 import { Auth, signOut } from '@angular/fire/auth'; 
 import { 
   IonContent, IonHeader, IonToolbar, 
-  IonIcon, IonItem, IonLabel, IonSelect, IonSelectOption, IonButtons, IonButton, IonSpinner, IonCheckbox, IonList,IonModal,ToastController,AlertController,IonInput,
+  IonIcon, IonItem, IonLabel, IonSelect, IonSelectOption, IonButtons, IonButton, IonSpinner, IonCheckbox, IonList, IonModal, ToastController, AlertController, IonInput,
   IonPopover, IonDatetime, IonDatetimeButton 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -25,12 +25,12 @@ import { Router } from '@angular/router';
   standalone: true,
   imports: [
     IonContent, IonHeader, IonToolbar, CommonModule, FormsModule, 
-    IonIcon, IonItem, IonLabel, IonSelect, IonSelectOption, IonButtons, IonButton, IonSpinner, IonCheckbox, IonList,IonModal,IonInput, IonPopover, IonDatetime, IonDatetimeButton
+    IonIcon, IonItem, IonLabel, IonSelect, IonSelectOption, IonButtons, IonButton, IonSpinner, IonCheckbox, IonList, IonModal, IonInput, IonPopover, IonDatetime, IonDatetimeButton
   ]
 })
 export class HorariosPage implements OnInit {
 
-  rolUsuario:string='ESTUDIANTE';
+  rolUsuario: string = 'ESTUDIANTE';
   private dbService = inject(DatabaseService);
   private firestore = inject(Firestore);
   private router = inject(Router); 
@@ -49,8 +49,8 @@ export class HorariosPage implements OnInit {
   tipoTutoriaSeleccionada: string = '';
 
   enviandoReserva: boolean = false;
-  fechaExactaTutoria: string = new Date().toISOString();
-  fechaMinima: string = new Date().toISOString(); 
+  fechaExactaTutoria: string = new Date().toISOString().split('T')[0];
+  fechaMinima: string = new Date().toISOString().split('T')[0]; 
   fechasPermitidasNormal: any;
   fechasPermitidasMatch: any;
 
@@ -131,12 +131,49 @@ export class HorariosPage implements OnInit {
   }
 
   constructor() {
-    addIcons({personCircleOutline,helpCircleOutline,swapHorizontalOutline,notificationsOutline,businessOutline,searchOutline,peopleOutline,mailOutline,star,logoWhatsapp,checkmarkOutline,closeOutline,informationCircleOutline,calendarOutline,checkmarkCircleOutline,sendOutline,schoolOutline,briefcaseOutline,shieldCheckmarkOutline,flashOutline,closeCircleOutline,locationOutline,starOutline,chevronDownOutline,logOutOutline,settingsOutline});
+    addIcons({
+      personCircleOutline, helpCircleOutline, swapHorizontalOutline, notificationsOutline,
+      businessOutline, searchOutline, peopleOutline, mailOutline, star, logoWhatsapp,
+      checkmarkOutline, closeOutline, informationCircleOutline, calendarOutline,
+      checkmarkCircleOutline, sendOutline, schoolOutline, briefcaseOutline,
+      shieldCheckmarkOutline, flashOutline, closeCircleOutline, locationOutline,
+      starOutline, chevronDownOutline, logOutOutline, settingsOutline
+    });
   }
 
   ngOnInit() {
     this.correoUsuario = localStorage.getItem('correo') || '';
     this.nombreUsuario = localStorage.getItem('nombre') || '';
+    this.fechaMinima = this.obtenerFechaLocalISO();
+    this.fechaExactaTutoria = this.obtenerFechaLocalISO();
+  }
+
+  obtenerFechaLocalISO(fecha: Date = new Date()): string {
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  obtenerFechaMasProxima(diaSemanaTexto: string): string {
+    const diasSemanaMapa: { [key: string]: number } = {
+      'domingo': 0, 'lunes': 1, 'martes': 2, 'miercoles': 3, 'jueves': 4, 'viernes': 5, 'sabado': 6
+    };
+    const diaLimpio = (diaSemanaTexto || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const diaObjetivo = diasSemanaMapa[diaLimpio];
+
+    const hoy = new Date();
+    hoy.setHours(12, 0, 0, 0);
+
+    if (diaObjetivo === undefined) {
+      return this.obtenerFechaLocalISO(hoy);
+    }
+
+    const diaActual = hoy.getDay();
+    const diasFaltantes = (diaObjetivo - diaActual + 7) % 7;
+    hoy.setDate(hoy.getDate() + diasFaltantes);
+
+    return this.obtenerFechaLocalISO(hoy);
   }
 
   calcularFechasPermitidas(diaSemanaTexto: string) {
@@ -151,12 +188,17 @@ export class HorariosPage implements OnInit {
       return date.getUTCDay() === diaObjetivo;
     };
   }
-async ionViewWillEnter() {
+
+  async ionViewWillEnter() {
     const correo = localStorage.getItem('correo') || '';
-    const rolActual = (localStorage.getItem('rol') || '').toUpperCase();
+    const rolActual = (localStorage.getItem('rol') || 'ESTUDIANTE').toUpperCase();
     this.rolUsuario = rolActual; 
     this.sedeUsuario = (localStorage.getItem('sede') || 'CUENCA').toUpperCase();
     
+    // 1. Carga instantánea de permisos desde localStorage (evita parpadeos en el menú)
+    this.tienePanelTutor = localStorage.getItem('tienePanelTutor') === 'true';
+    this.tienePanelAdmin = localStorage.getItem('tienePanelAdmin') === 'true';
+
     this.esCoordinadorPanel = (rolActual === 'ADMIN' || rolActual === 'COORDINADOR');
     if (this.rolUsuario === 'COORDINADOR') {
       this.filtroSedeAgenda = this.sedeUsuario;
@@ -178,13 +220,11 @@ async ionViewWillEnter() {
           this.usuarioDocId = snapUsuario.docs[0].id; 
           this.datosEstudianteActual = datosUsr;  
           
-          // 🌟 SOLUCIÓN: FIREBASE ES LA ÚNICA AUTORIDAD
-          // Si Firebase dice que es false o no existe, mostramos el modal obligatoriamente.
-         // 🌟 CAMBIA ESTA CONDICIÓN:
+          // PRIORIDAD 1: TÉRMINOS Y CONDICIONES
           if (datosUsr['terminos_aceptados'] === false || datosUsr['terminos_aceptados'] === undefined || datosUsr['terminos_aceptados'] === null) {
             this.mostrarModalTerminos = true;
           }
-          // 🌟 PRIORIDAD 2: RENOVACIÓN DE CICLO
+          // PRIORIDAD 2: RENOVACIÓN DE CICLO
           else if (datosUsr['ultimo_periodo_activo'] !== this.periodoApp && this.rolUsuario !== 'ADMIN' && this.rolUsuario !== 'COORDINADOR') {
             this.mostrarModalRenovacionEstudiante = true;
           }
@@ -195,7 +235,12 @@ async ionViewWillEnter() {
     }
 
     await this.verificarNotificaciones(correo, this.rolUsuario, this.sedeUsuario);
-    await this.cargarPermisosPaneles(correo); 
+
+    // 2. Sincronización centralizada de permisos con Firestore
+    const permisos = await this.dbService.obtenerPermisosPaneles(correo);
+    this.tienePanelTutor = permisos.tienePanelTutor;
+    this.tienePanelAdmin = permisos.tienePanelAdmin;
+    if (this.cdr) this.cdr.detectChanges();
     
     this.cargando = true;
     this.textoBusqueda = ''; 
@@ -274,36 +319,32 @@ async ionViewWillEnter() {
     this.docentesExcel = await this.dbService.obtenerDocentesDesdeExcel(this.sedeUsuario);
   }
 
-  async cargarPermisosPaneles(correo: string) {
-    this.tienePanelTutor = false;
-    this.tienePanelAdmin = false;
-    if (!correo) return;
-    try {
-      const qEst = query(collection(this.firestore, 'Estudiantes'), where('correo', '==', correo));
-      const snapEst = await getDocs(qEst);
-      if (!snapEst.empty) {
-        const rolDB = String(snapEst.docs[0].data()['rol'] || snapEst.docs[0].data()['Rol'] || '').toUpperCase().trim();
-        if (rolDB === 'TUTOR') this.tienePanelTutor = true;
-        if (rolDB === 'COORDINADOR' || rolDB === 'ADMIN') {
-          this.tienePanelTutor = true;
-          this.tienePanelAdmin = true;
-        }
-      }
-      if (!this.tienePanelTutor) {
-        const qTut = query(collection(this.firestore, 'Tutores'), where('correo', '==', correo));
-        const snapTut = await getDocs(qTut);
-        if (!snapTut.empty) this.tienePanelTutor = true;
-      }
-    } catch (error) {}
-    if (this.cdr) this.cdr.detectChanges(); 
-  }
-
   abrirMenuRol(evento: any) { this.eventoRol = evento; this.menuRolAbierto = true; }
   abrirMenuPerfil(evento: any) { this.eventoPerfil = evento; this.menuPerfilAbierto = true; }
-  irAPanel(ruta: string, rolDestino: string) { this.menuRolAbierto = false; localStorage.setItem('rol', rolDestino); setTimeout(() => { this.router.navigate([ruta]); }, 150); }
+
+  irAPanel(ruta: string, rolDestino: string) {
+    this.menuRolAbierto = false;
+    localStorage.setItem('rol', rolDestino);
+    setTimeout(() => {
+      this.router.navigate([ruta]);
+    }, 150);
+  }
+
   irAPerfil() { this.menuPerfilAbierto = false; this.router.navigate(['/tabs/perfil']); }
   irANotificaciones() { this.router.navigate(['/notificaciones']); }
-  async cerrarSesion() { this.menuPerfilAbierto = false; try { await signOut(this.auth); localStorage.clear(); this.router.navigate(['/login']); } catch (error) { localStorage.clear(); this.router.navigate(['/login']); } }
+
+  async cerrarSesion() {
+    this.menuPerfilAbierto = false;
+    try {
+      await signOut(this.auth);
+      localStorage.clear();
+      this.router.navigate(['/login']);
+    } catch (error) {
+      localStorage.clear();
+      this.router.navigate(['/login']);
+    }
+  }
+
   async recargarAgendaSede() { await this.ionViewWillEnter(); }
   toggleCoordinacion() { this.mostrarCoordinacion = !this.mostrarCoordinacion; }
   abrirGuia() { this.mostrarGuia = true; this.menuPerfilAbierto = false; }
@@ -312,7 +353,7 @@ async ionViewWillEnter() {
   async verificarNotificaciones(correo: string, rol: string, sede: string) {
     try {
       const notifs = await this.dbService.obtenerNotificacionesUsuario(correo, rol, sede);
-      const sinLeer = notifs.filter((n: any) => { return !n['leida_por']?.includes(correo); });
+      const sinLeer = notifs.filter((n: any) => !n['leida_por']?.includes(correo));
       this.hayNotificacionesSinLeer = sinLeer.length > 0;
     } catch (error) {}
   }
@@ -430,17 +471,18 @@ async ionViewWillEnter() {
     const nombreDelTutor = String(tutor.nombre || '').toLowerCase().trim();
 
     if (correoDelTutor !== '' && correoDelTutor === miCorreo) {
-      this.mostrarAviso('No puedes agendar una tutoría contigo mismo.','error'); return; 
+      this.mostrarAviso('No puedes agendar una tutoría contigo mismo.', 'error'); return; 
     }
     if (nombreDelTutor !== '' && nombreDelTutor === miNombre) {
-      this.mostrarAviso('Acción bloqueada: No puedes ser el estudiante y el tutor a la vez.','advertencia'); return;
+      this.mostrarAviso('Acción bloqueada: No puedes ser el estudiante y el tutor a la vez.', 'advertencia'); return;
     }
 
     this.listaHorasDisponibles = horas.split('\n').map(h => h.trim()).filter(h => h.length > 0);
     this.horaSeleccionada = ''; 
     this.modalidadElegida = '';
     this.opcionesModalidad = [];
-    this.fechaExactaTutoria = new Date().toISOString(); 
+    this.fechaMinima = this.obtenerFechaLocalISO();
+    this.fechaExactaTutoria = this.obtenerFechaMasProxima(dia); 
     this.fechasPermitidasNormal = this.calcularFechasPermitidas(dia);
 
     this.reservaActual = { 
@@ -491,40 +533,87 @@ async ionViewWillEnter() {
     this.tipoTutoriaSeleccionada = '';
   }
 
- async confirmarReserva() {
-    if (this.enviandoReserva) return; 
-    if (!this.reservaActual) return;
-    if (!this.horaSeleccionada) { this.mostrarAviso('Por favor, selecciona una hora específica para la tutoría.', 'advertencia'); return; }
-    if (this.opcionesModalidad.length > 1 && !this.modalidadElegida) { this.mostrarAviso('Por favor, selecciona la modalidad de la tutoría.', 'advertencia'); return; }
-    if (!this.tipoTutoriaSeleccionada) { this.mostrarAviso('Por favor, indica el tipo de tutoría que necesitas.', 'advertencia'); return; } // 🌟 NUEVA VALIDACIÓN
-    if (!this.tipoDerivacion && !this.reservaActual.tipo_derivacion) { this.mostrarAviso('Por favor, indica el motivo de la tutoría.', 'advertencia'); return; }
-    if (!this.docenteBuscado && !this.reservaActual.docente) { this.mostrarAviso('Por favor, busca y selecciona un docente.', 'advertencia'); return; }
+  calcularDuracionHoras(rangoHora: string): number {
+    if (!rangoHora) return 1;
+    const coincidencia = rangoHora.match(/(\d{1,2}):(\d{2})\s*(?:-|a|hasta)\s*(\d{1,2}):(\d{2})/i);
+    if (!coincidencia) return 1;
+
+    const inicioMin = parseInt(coincidencia[1], 10) * 60 + parseInt(coincidencia[2], 10);
+    const finMin = parseInt(coincidencia[3], 10) * 60 + parseInt(coincidencia[4], 10);
+
+    if (finMin <= inicioMin) return 1;
+    return (finMin - inicioMin) / 60;
+  }
+
+async confirmarReserva(): Promise<boolean> {
+    if (this.enviandoReserva) return false; 
+    if (!this.reservaActual) return false;
+    if (!this.horaSeleccionada) { this.mostrarAviso('Por favor, selecciona una hora específica para la tutoría.', 'advertencia'); return false; }
+    if (this.opcionesModalidad.length > 1 && !this.modalidadElegida) { this.mostrarAviso('Por favor, selecciona la modalidad de la tutoría.', 'advertencia'); return false; }
+    if (!this.tipoTutoriaSeleccionada) { this.mostrarAviso('Por favor, indica el tipo de tutoría que necesitas.', 'advertencia'); return false; }
+    if (!this.tipoDerivacion && !this.reservaActual.tipo_derivacion) { this.mostrarAviso('Por favor, indica el motivo de la tutoría.', 'advertencia'); return false; }
+    if (!this.docenteBuscado && !this.reservaActual.docente) { this.mostrarAviso('Por favor, busca y selecciona un docente.', 'advertencia'); return false; }
+
+    const horaLimpia = this.horaSeleccionada.split('(')[0].trim();
+    const fechaCorta = this.fechaExactaTutoria.split('T')[0];
+
+    // Validación de máximo 3 horas (aplica a agendamiento normal y Match Automático)
+    const duracionHoras = this.calcularDuracionHoras(horaLimpia);
+    if (duracionHoras > 3) {
+      this.mostrarAviso('El tiempo máximo permitido por tutoría es de 3 horas.', 'advertencia');
+      return false;
+    }
 
     this.enviandoReserva = true; 
 
     try {
-      const horaLimpia = this.horaSeleccionada.split('(')[0].trim();
-      const fechaCorta = this.fechaExactaTutoria.split('T')[0]; 
+      const correoLimpio = (this.correoUsuario || localStorage.getItem('correo') || '').toLowerCase().trim();
+      const qMismoDia = query(
+        collection(this.firestore, 'Reservas'),
+        where('correoEstudiante', '==', correoLimpio),
+        where('fecha_exacta', '==', fechaCorta)
+      );
+      const snapMismoDia = await getDocs(qMismoDia);
+      let horasAgendadasDia = 0;
+
+      snapMismoDia.forEach(docSnap => {
+        const data = docSnap.data();
+        const estado = (data['estado'] || '').toUpperCase();
+        if (estado !== 'CANCELADA' && estado !== 'RECHAZADA') {
+          horasAgendadasDia += this.calcularDuracionHoras(data['hora_elegida'] || '');
+        }
+      });
+
+      if (horasAgendadasDia + duracionHoras > 3) {
+        this.mostrarAviso(`Ya tienes ${horasAgendadasDia}h agendadas ese día. El máximo permitido es de 3 horas por día.`, 'advertencia');
+        this.enviandoReserva = false;
+        return false;
+      }
+
+      const codigoGenerado = this.dbService.generarCodigoTutoria(this.reservaActual.materia);
+      const snapshotReserva = { ...this.reservaActual };
+      const modalidadFinal = this.modalidadElegida;
 
       const datosReserva = {
-        correoEstudiante: this.correoUsuario,
+        correoEstudiante: correoLimpio,
         nombreEstudiante: this.nombreUsuario,
         celularEstudiante: localStorage.getItem('celular') || 'No registrado',
         codigoPaisEstudiante: localStorage.getItem('codigo_pais') || '+593', 
-        correoTutor: this.reservaActual.correoTutor,
-        nombreTutor: this.reservaActual.tutorNombre,
-        celularTutor: this.reservaActual.celularTutor || 'No registrado',
-        codigoPaisTutor: this.reservaActual.codigoPaisTutor || '+593', 
-        materia: this.reservaActual.materia,
-        dia_elegido: this.reservaActual.dia,
+        correoTutor: String(snapshotReserva.correoTutor || '').toLowerCase().trim(),
+        nombreTutor: snapshotReserva.tutorNombre,
+        celularTutor: snapshotReserva.celularTutor || 'No registrado',
+        codigoPaisTutor: snapshotReserva.codigoPaisTutor || '+593', 
+        materia: snapshotReserva.materia,
+        dia_elegido: snapshotReserva.dia,
         hora_elegida: horaLimpia, 
+        duracion_horas: duracionHoras,
         fecha_exacta: fechaCorta, 
-        modalidad: this.modalidadElegida, 
-        sedeTutor: this.reservaActual.tutorSede, 
-        codigo: this.dbService.generarCodigoTutoria(this.reservaActual.materia),
-        tipo_tutoria: this.tipoTutoriaSeleccionada, // 🌟 NUEVO
-        tipo_derivacion: this.tipoDerivacion || this.reservaActual.tipo_derivacion || 'DECISIÓN PROPIA',
-        docente: this.docenteBuscado || this.reservaActual.docente || 'No especificado'
+        modalidad: modalidadFinal, 
+        sedeTutor: snapshotReserva.tutorSede, 
+        codigo: codigoGenerado,
+        tipo_tutoria: this.tipoTutoriaSeleccionada,
+        tipo_derivacion: this.tipoDerivacion || snapshotReserva.tipo_derivacion || 'DECISIÓN PROPIA',
+        docente: this.docenteBuscado || snapshotReserva.docente || 'No especificado'
       };
       
       await this.dbService.agendarTutoria(datosReserva);
@@ -533,9 +622,9 @@ async ionViewWillEnter() {
         if (this.dbService.crearNotificacion) {
           await this.dbService.crearNotificacion({
             titulo: 'Nueva Solicitud de Tutoría',
-            mensaje: `${this.nombreUsuario} ha solicitado una tutoria ${this.modalidadElegida} de ${this.reservaActual.materia} el ${fechaCorta} a las ${horaLimpia}.`, 
+            mensaje: `${this.nombreUsuario} ha solicitado una tutoria ${modalidadFinal} de ${snapshotReserva.materia} el ${fechaCorta} a las ${horaLimpia}.`, 
             tipo: 'TUTORIA',
-            correo_destino: this.reservaActual.correoTutor,
+            correo_destino: String(snapshotReserva.correoTutor || '').toLowerCase().trim(),
             sede_destino: 'GLOBAL',
             rol_destino: 'TUTOR' 
           });
@@ -543,13 +632,28 @@ async ionViewWillEnter() {
       } catch (notiError) {}
 
       this.cerrarConfirmacion();
-      this.mostrarAviso('¡Tutoría agendada con éxito! Revisa la pestaña de Mis Tutorías.','exito');
+      this.mostrarAviso('¡Tutoría agendada con éxito! Revisa la pestaña de Mis Tutorías.', 'exito');
+
+      // Mensaje automático a WhatsApp (Normal y Match Automático)
+      this.abrirWhatsAppConfirmacion({
+        celularTutor: snapshotReserva.celularTutor,
+        codigoPaisTutor: snapshotReserva.codigoPaisTutor,
+        nombreTutor: snapshotReserva.tutorNombre,
+        materia: snapshotReserva.materia,
+        fecha: fechaCorta,
+        dia: snapshotReserva.dia,
+        hora: horaLimpia,
+        modalidad: modalidadFinal,
+        codigo: codigoGenerado
+      });
       
       this.tipoDerivacion = '';
       this.docenteBuscado = '';
       this.docentesFiltrados = [];
+      return true;
     } catch (error) {
-      this.mostrarAviso('Hubo un problema al enviar tu solicitud.','error');
+      this.mostrarAviso('Hubo un problema al enviar tu solicitud.', 'error');
+      return false;
     } finally {
       this.enviandoReserva = false; 
     }
@@ -558,14 +662,44 @@ async ionViewWillEnter() {
   formatearNumeroWA(numero: string): string {
     if (!numero) return '';
     let limpio = numero.replace(/\D/g, '');
-    if (limpio.startsWith('09')) limpio = '9' + limpio.substring(2);
+    if (limpio.startsWith('0')) limpio = limpio.substring(1);
     return limpio;
+  }
+
+  abrirWhatsAppConfirmacion(datos: {
+    celularTutor: string;
+    codigoPaisTutor: string;
+    nombreTutor: string;
+    materia: string;
+    fecha: string;
+    dia: string;
+    hora: string;
+    modalidad: string;
+    codigo: string;
+  }) {
+    const numeroLimpio = this.formatearNumeroWA(datos.celularTutor);
+    if (!numeroLimpio || numeroLimpio.length < 8) return;
+
+    const prefijoPais = (datos.codigoPaisTutor || '+593').replace(/\D/g, '') || '593';
+    const telefonoCompleto = numeroLimpio.startsWith(prefijoPais) ? numeroLimpio : `${prefijoPais}${numeroLimpio}`;
+
+    const mensaje =
+      `Hola *${datos.nombreTutor}*, soy *${this.nombreUsuario}*. Acabo de agendar una tutoría contigo en la plataforma GIETAES:\n\n` +
+      `📚 *Materia:* ${datos.materia}\n` +
+      `📅 *Fecha:* ${datos.fecha} (${datos.dia})\n` +
+      `⏰ *Hora:* ${datos.hora}\n` +
+      `📍 *Modalidad:* ${datos.modalidad}\n` +
+      `🔑 *Código:* ${datos.codigo}\n\n` +
+      `Quedo atento/a a tu confirmación. ¡Muchas gracias!`;
+
+    const url = `https://wa.me/${telefonoCompleto}?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
   }
 
   async verificarEvaluacionesPendientes() {
     const nombre = localStorage.getItem('nombre');
     const cedula = localStorage.getItem('cedula');
-    if(!nombre || !cedula) return;
+    if (!nombre || !cedula) return;
     const miInfo = `${nombre}\n${cedula}`;
 
     try {
@@ -590,7 +724,7 @@ async ionViewWillEnter() {
 
   async enviarEvaluacion() {
     if (!this.evaluacionValida) {
-      this.mostrarAviso("Por favor, califica las 3 preguntas antes de enviar.",'info'); return;
+      this.mostrarAviso("Por favor, califica las 3 preguntas antes de enviar.", 'info'); return;
     }
     this.enviandoEvaluacion = true;
     try {
@@ -604,46 +738,39 @@ async ionViewWillEnter() {
       };
       await fetch(urlScript, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       await updateDoc(doc(this.firestore, 'Asistencias', this.reservaAEvaluar.id), { evaluado: true });
-      this.mostrarAviso("¡Gracias por tu retroalimentación! Ya puedes seguir agendando.",'exito');
+      this.mostrarAviso("¡Gracias por tu retroalimentación! Ya puedes seguir agendando.", 'exito');
       this.mostrarModalEvaluacion = false;
       this.respuestasEvaluacion = [0, 0, 0]; 
     } catch (error) {
-      this.mostrarAviso("Hubo un error de conexión al enviar la evaluación.",'error');
+      this.mostrarAviso("Hubo un error de conexión al enviar la evaluación.", 'error');
     } finally {
       this.enviandoEvaluacion = false;
     }
   }
-async aceptarTerminos() {
+
+  async aceptarTerminos() {
     if (!this.aceptaTerminosCheckbox) return;
     this.guardandoTerminos = true;
 
     try {
-      const correo = localStorage.getItem('correo') || '';
       let coleccionActual = 'Estudiantes';
       if (this.rolUsuario === 'TUTOR') coleccionActual = 'Tutores';
       if (this.rolUsuario === 'ADMIN' || this.rolUsuario === 'COORDINADOR') coleccionActual = 'Administradores';
 
-      // 🌟 USA ESTRICTAMENTE el ID que capturó el ionViewWillEnter
       const documentoId = this.usuarioDocId;
 
       if (documentoId) {
         await updateDoc(doc(this.firestore, coleccionActual, documentoId), { 
           terminos_aceptados: true 
         });
-        console.log("Términos actualizados con éxito en el documento ID:", documentoId);
-      } else {
-        console.error("¡CUIDADO! No se encontró el ID del documento en el ionViewWillEnter");
       }
 
       localStorage.setItem('terminos_aceptados', 'true');
-
     } catch (error) {
       console.error("Error al guardar términos en Firebase:", error);
     } finally {
       this.mostrarModalTerminos = false;
       this.guardandoTerminos = false;
-      
-      // Forzamos recarga limpia para aplicar los cambios en caliente
       window.location.reload();
     }
   }
@@ -675,7 +802,7 @@ async aceptarTerminos() {
     this.textoBusquedaInteligente = ''; this.materiaInteligente = ''; this.diaInteligente = '';
     this.horaInteligente = ''; this.materiasSugeridas = []; this.diasDisponiblesInteligente = [];
     this.horasDisponiblesInteligente = []; this.tipoDerivacion = ''; this.docenteBuscado = ''; this.docentesFiltrados = [];
-    this.fechaExactaTutoria = new Date().toISOString(); 
+    this.fechaExactaTutoria = this.obtenerFechaLocalISO(); 
     this.tipoTutoriaSeleccionada = '';
   }
 
@@ -747,16 +874,19 @@ async aceptarTerminos() {
 
   alSeleccionarDiaMatch() {
     if (this.diaInteligente) {
+      this.fechaMinima = this.obtenerFechaLocalISO();
       this.fechasPermitidasMatch = this.calcularFechasPermitidas(this.diaInteligente);
-      this.fechaExactaTutoria = new Date().toISOString();
+      this.fechaExactaTutoria = this.obtenerFechaMasProxima(this.diaInteligente);
+      if (this.cdr) this.cdr.detectChanges();
     }
   }
 
   async ejecutarMatchInteligente() {
     if (this.enviandoReserva) return; 
 
-    if (!this.materiaInteligente || !this.diaInteligente || !this.horaInteligente || !this.tipoDerivacion || !this.docenteBuscado) {
-      this.mostrarAviso('Por favor, completa todos los campos para buscar tu tutor ideal.', 'advertencia'); return;
+    if (!this.materiaInteligente || !this.diaInteligente || !this.horaInteligente || !this.tipoTutoriaSeleccionada || !this.tipoDerivacion || !this.docenteBuscado) {
+      this.mostrarAviso('Por favor, completa todos los campos para buscar tu tutor ideal.', 'advertencia'); 
+      return;
     }
 
     const bloque = this.asignaturasMaster.find((a: any) => a.asignatura === this.materiaInteligente);
@@ -767,14 +897,15 @@ async aceptarTerminos() {
         const claveBuscada = `${this.diaInteligente}-${this.horaInteligente}`;
         if (tutor.horarios && tutor.horarios[claveBuscada]) {
           const miCorreo = String(localStorage.getItem('correo')).toLowerCase().trim();
-          const correoTutor = String(tutor.correo || tutor.correo_google).toLowerCase().trim();
+          const correoTutor = String(tutor.correo || tutor.correo_google || '').toLowerCase().trim();
           if (correoTutor !== miCorreo) tutoresValidos.push(tutor);
         }
       });
     }
 
     if (tutoresValidos.length === 0) {
-      this.mostrarAviso('No hay tutores disponibles en ese cruce exacto. Intenta con otra hora.', 'error'); return;
+      this.mostrarAviso('No hay tutores disponibles en ese cruce exacto. Intenta con otra hora.', 'error'); 
+      return;
     }
 
     const indiceAleatorio = Math.floor(Math.random() * tutoresValidos.length);
@@ -784,11 +915,12 @@ async aceptarTerminos() {
     const modalidadTutor = (tutorElegido.horarios[claveBuscada] || '').toUpperCase();
     const esOtraSede = (tutorElegido.sede || '').toUpperCase() !== this.sedeUsuario;
 
-    if (esOtraSede) this.modalidadElegida = 'VIRTUAL';
-    else {
-      if (modalidadTutor === 'PRESENCIAL') this.modalidadElegida = 'PRESENCIAL';
-      else if (modalidadTutor === 'VIRTUAL') this.modalidadElegida = 'VIRTUAL';
-      else this.modalidadElegida = 'VIRTUAL'; 
+    if (esOtraSede) {
+      this.modalidadElegida = 'VIRTUAL';
+    } else if (modalidadTutor === 'PRESENCIAL') {
+      this.modalidadElegida = 'PRESENCIAL';
+    } else {
+      this.modalidadElegida = 'VIRTUAL';
     }
 
     this.reservaActual = {
@@ -805,8 +937,11 @@ async aceptarTerminos() {
     };
     
     this.horaSeleccionada = this.horaInteligente; 
-    await this.confirmarReserva(); 
-    this.cerrarAgendamientoInteligente();
+    const agendadoExitoso = await this.confirmarReserva(); 
+    
+    if (agendadoExitoso) {
+      this.cerrarAgendamientoInteligente();
+    }
   }
 
   filtrarDocentes() {

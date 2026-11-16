@@ -33,6 +33,10 @@ export class LoginPage implements OnInit {
 
   modoRegistro = false;
   cargando = false;
+  mostrarBienvenida = false;
+  fraseSalesianaActual: string = '';
+  private datosPendientesSesion: any = null;
+  private rolPendienteSesion: string = 'ESTUDIANTE';
   
   correoGoogle: string = ''; 
   correoInstitucional: string = ''; 
@@ -125,6 +129,7 @@ export class LoginPage implements OnInit {
   ionViewWillEnter() {
     this.modoRegistro = false;
     this.cargando = false;
+    this.mostrarBienvenida = false;
     this.correoGoogle = '';
     this.correoInstitucional = '';
     this.nombres = '';
@@ -253,19 +258,18 @@ export class LoginPage implements OnInit {
     }
   }
 
-  async procesarRegistroCompleto() {
+async procesarRegistroCompleto() {
     if (!this.correoInstitucional || !this.nombres || !this.apellidos || !this.cedula || !this.carreraSeleccionada || !this.ciclo || !this.beca || !this.celular || !this.sede) {
-      this.mostrarAviso("Por favor llena todos los campos obligatorios.",'advertencia');
+      this.mostrarAviso("Por favor llena todos los campos obligatorios.", 'advertencia');
       return;
     }
 
     // 🌟 UNIFICAMOS LOS NOMBRES PARA LA BASE DE DATOS
     const nombreUnificado = `${this.nombres.trim()} ${this.apellidos.trim()}`;
-
     const correoLimpio = this.correoInstitucional.toLowerCase().trim();
 
     if (!correoLimpio.endsWith('@est.ups.edu.ec') && !correoLimpio.endsWith('@ups.edu.ec')) {
-      this.mostrarAviso("El correo ingresado no pertenece a la UPS.",'advertencia');
+      this.mostrarAviso("El correo ingresado no pertenece a la UPS.", 'advertencia');
       return;
     }
 
@@ -277,7 +281,8 @@ export class LoginPage implements OnInit {
     this.cedula = this.cedula.trim().toUpperCase(); 
 
     if (!this.validarCelular(this.celular, this.codigoPais)) {
-      this.mostrarAviso("El número de celular ingresado no es válido para su país.",'info'); return;
+      this.mostrarAviso("El número de celular ingresado no es válido para su país.", 'info'); 
+      return;
     }
 
     let celularEstandar = this.celular.replace(/\D/g, '');
@@ -291,8 +296,9 @@ export class LoginPage implements OnInit {
       const estRef = doc(this.firestore, 'Estudiantes', correoLimpio);
       const estSnap = await getDoc(estRef);
       if (estSnap.exists()) {
-        this.mostrarAviso(`El correo ${correoLimpio} ya está vinculado a otra cuenta de Google.`,'advertencia');
-        this.cargando = false; return;
+        this.mostrarAviso(`El correo ${correoLimpio} ya está vinculado a otra cuenta de Google.`, 'advertencia');
+        this.cargando = false; 
+        return;
       }
 
       const tutRef = doc(this.firestore, 'Tutores', correoLimpio);
@@ -300,13 +306,14 @@ export class LoginPage implements OnInit {
       if (tutSnap.exists()) {
         const datosTutor = tutSnap.data();
         if (datosTutor['correo_google'] && datosTutor['correo_google'] !== this.correoGoogle) {
-          this.mostrarAviso(`Este correo ya fue vinculado a la cuenta: ${datosTutor['correo_google']}.`,'advertencia');
-          this.cargando = false; return;
+          this.mostrarAviso(`Este correo ya fue vinculado a la cuenta: ${datosTutor['correo_google']}.`, 'advertencia');
+          this.cargando = false; 
+          return;
         }
         await updateDoc(tutRef, { correo_google: this.correoGoogle });
         const datosActualizados = tutSnap.data();
         datosActualizados['correo_google'] = this.correoGoogle;
-        this.iniciarSesionLocal(datosActualizados, datosActualizados['rol'] || 'TUTOR');
+        this.activarVistaBienvenida(datosActualizados, datosActualizados['rol'] || 'TUTOR');
         return;
       }
 
@@ -315,40 +322,64 @@ export class LoginPage implements OnInit {
       if (adminSnap.exists()) {
         const datosAdmin = adminSnap.data();
         if (datosAdmin['correo_google'] && datosAdmin['correo_google'] !== this.correoGoogle) {
-          this.mostrarAviso(`Este correo ya fue vinculado a la cuenta: ${datosAdmin['correo_google']}.`,'advertencia');
-          this.cargando = false; return;
+          this.mostrarAviso(`Este correo ya fue vinculado a la cuenta: ${datosAdmin['correo_google']}.`, 'advertencia');
+          this.cargando = false; 
+          return;
         }
         await updateDoc(adminRef, { correo_google: this.correoGoogle });
         const datosActualizados = adminSnap.data();
         datosActualizados['correo_google'] = this.correoGoogle;
-        this.iniciarSesionLocal(datosActualizados, datosActualizados['rol'] || 'ADMIN');
+        this.activarVistaBienvenida(datosActualizados, datosActualizados['rol'] || 'ADMIN');
         return;
       }
 
-    } catch(e) { 
-      console.error("Error al verificar unicidad:", e); 
-      this.mostrarAviso("Hubo un problema verificando tu correo. Inténtalo de nuevo.",'error');
-      this.cargando = false; return;
+      const nuevoEstudiante = {
+        correo_google: this.correoGoogle,    
+        correo: correoLimpio,                
+        nombre_completo: nombreUnificado,
+        cedula: this.cedula, 
+        sede: this.sede,               
+        carrera: this.carreraSeleccionada, 
+        ciclo: this.ciclo,
+        beca: this.beca,
+        codigo_pais: this.codigoPais, 
+        celular: celularEstandar,     
+        estado: 'ACTIVO',
+        rol: 'ESTUDIANTE',
+        fecha_registro: new Date().toISOString()
+      };
+
+      await this.dbService.registrarNuevoEstudiante(nuevoEstudiante);
+      this.activarVistaBienvenida(nuevoEstudiante, 'ESTUDIANTE');
+
+    } catch (e) { 
+      console.error("Error al procesar registro:", e); 
+      this.mostrarAviso("Hubo un problema verificando o guardando tus datos. Inténtalo de nuevo.", 'error');
+      this.cargando = false; 
     }
+  }
 
-    const nuevoEstudiante = {
-      correo_google: this.correoGoogle,    
-      correo: correoLimpio,                
-      nombre_completo: nombreUnificado, // 🌟 GUARDAMOS EL NOMBRE COMO ANTES
-      cedula: this.cedula, 
-      sede: this.sede,               
-      carrera: this.carreraSeleccionada, 
-      ciclo: this.ciclo,
-      beca: this.beca,
-      codigo_pais: this.codigoPais, 
-      celular: celularEstandar,     
-      estado: 'ACTIVO',
-      rol: 'ESTUDIANTE',
-      fecha_registro: new Date().toISOString()
-    };
+  activarVistaBienvenida(datos: any, rol: string) {
+    const frasesSalesianas = [
+      '«La educación es cosa del corazón.» — San Juan Bosco',
+      '«Estudia, trabaja, hazte amar y serás feliz.» — San Juan Bosco',
+      '«No basta con saber las cosas, es necesario practicarlas.» — San Juan Bosco',
+      '«La alegría, el estudio y la piedad son el mejor programa para hacerte feliz.» — San Juan Bosco',
+      '«Camina con los pies en la tierra y con el corazón en el cielo.» — San Juan Bosco'
+    ];
 
-    await this.dbService.registrarNuevoEstudiante(nuevoEstudiante);
-    this.iniciarSesionLocal(nuevoEstudiante, 'ESTUDIANTE');
+    this.fraseSalesianaActual = frasesSalesianas[Math.floor(Math.random() * frasesSalesianas.length)];
+    this.datosPendientesSesion = datos;
+    this.rolPendienteSesion = rol;
+    this.cargando = false;
+    this.mostrarBienvenida = true;
+  }
+
+  continuarDespuesDeBienvenida() {
+    this.mostrarBienvenida = false;
+    if (this.datosPendientesSesion) {
+      this.iniciarSesionLocal(this.datosPendientesSesion, this.rolPendienteSesion);
+    }
   }
 
   iniciarSesionLocal(datos: any, rol: string) {
@@ -377,5 +408,35 @@ export class LoginPage implements OnInit {
       message: mensaje, duration: 3000, position: 'top', icon: icono, cssClass: `toast-premium-gietaes ${claseCss}`, mode: 'ios' 
     });
     await toast.present();
+  }
+  async mostrarBienvenidaSalesiana(nombreUsuario: string): Promise<void> {
+    const frasesSalesianas = [
+      '«La educación es cosa del corazón.» — San Juan Bosco',
+      '«Estudia, trabaja, hazte amar y serás feliz.» — San Juan Bosco',
+      '«No basta con saber las cosas, es necesario practicarlas.» — San Juan Bosco',
+      '«La alegría, el estudio y la piedad son el mejor programa para hacerte feliz.» — San Juan Bosco',
+      '«Camina con los pies en la tierra y con el corazón en el cielo.» — San Juan Bosco'
+    ];
+
+    const fraseElegida = frasesSalesianas[Math.floor(Math.random() * frasesSalesianas.length)];
+
+    return new Promise(async (resolve) => {
+      const alert = await this.alertController.create({
+        header: '¡BIENVENIDO A LAS TUTORIAS ENTRE PARES!',
+        subHeader: nombreUsuario,
+        message: `Tu registro se ha completado con éxito. Nos alegra acompañarte en tu camino universitario.\n\n${fraseElegida}`,
+        cssClass: 'alerta-premium-gietaes',
+        backdropDismiss: false,
+        mode: 'md',
+        buttons: [
+          {
+            text: '¡COMENZAR!',
+            cssClass: 'btn-alerta-confirmar',
+            handler: () => resolve()
+          }
+        ]
+      });
+      await alert.present();
+    });
   }
 }

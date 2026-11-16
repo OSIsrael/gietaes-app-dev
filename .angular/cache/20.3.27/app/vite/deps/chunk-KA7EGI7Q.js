@@ -28,7 +28,6 @@ import {
   Renderer2,
   RendererStyleFlags2,
   RuntimeError,
-  Subject,
   TemplateRef,
   Version,
   ViewContainerRef,
@@ -58,7 +57,10 @@ import {
   ɵɵinject,
   ɵɵinjectAttribute,
   ɵɵstyleProp
-} from "./chunk-22WJZCYU.js";
+} from "./chunk-KRBOCFU4.js";
+import {
+  Subject
+} from "./chunk-WQ5CZGEH.js";
 import {
   __async,
   __spreadProps,
@@ -5213,4 +5215,4 @@ export {
   PRECONNECT_CHECK_BLOCKLIST,
   NgOptimizedImage
 };
-//# sourceMappingURL=chunk-UNU3VBAH.js.map
+//# sourceMappingURL=chunk-KA7EGI7Q.js.map

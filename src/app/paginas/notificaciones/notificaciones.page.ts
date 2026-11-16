@@ -1,16 +1,16 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router'; // 🌟 AGREGAMOS ActivatedRoute
+import { Router, ActivatedRoute } from '@angular/router';
 import { 
   IonContent, IonHeader, IonToolbar, IonButton, IonButtons, 
-  IonIcon 
+  IonIcon, ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   arrowBackOutline, notificationsOutline, calendarOutline, 
   documentTextOutline, megaphoneOutline, checkmarkDoneOutline,
-  chevronForwardOutline
+  chevronForwardOutline, swapHorizontalOutline
 } from 'ionicons/icons';
 import { DatabaseService } from '../../services/database';
 
@@ -27,7 +27,8 @@ import { DatabaseService } from '../../services/database';
 export class NotificacionesPage implements OnInit {
   private dbService = inject(DatabaseService);
   private router = inject(Router);
-  private route = inject(ActivatedRoute); // 🌟 HERRAMIENTA PARA LEER LA URL
+  private route = inject(ActivatedRoute);
+  private toastController = inject(ToastController);
 
   notificaciones: any[] = [];
   cargando: boolean = true;
@@ -35,22 +36,25 @@ export class NotificacionesPage implements OnInit {
   rolUsuario: string = '';
   sedeUsuario: string = '';
   
-  contextoBandeja: string = 'ESTUDIANTE'; // 🌟 LA BANDEJA QUE SE MOSTRARÁ
+  contextoBandeja: string = 'ESTUDIANTE';
+
+  get haySinLeer(): boolean {
+    return this.notificaciones.some(n => !this.esLeida(n));
+  }
 
   constructor() {
     addIcons({
       arrowBackOutline, notificationsOutline, calendarOutline, 
       documentTextOutline, megaphoneOutline, checkmarkDoneOutline,
-      chevronForwardOutline
+      chevronForwardOutline, swapHorizontalOutline
     });
   }
 
   ngOnInit() {
-    this.correoUsuario = localStorage.getItem('correo') || '';
+    this.correoUsuario = (localStorage.getItem('correo') || '').toLowerCase().trim();
     this.rolUsuario = localStorage.getItem('rol') || 'ESTUDIANTE';
     this.sedeUsuario = localStorage.getItem('sede') || 'CUENCA';
 
-    // 🌟 LEEMOS DE QUÉ PANEL VIENE EL USUARIO
     this.route.queryParams.subscribe(params => {
       this.contextoBandeja = params['panel'] || 'ESTUDIANTE';
     });
@@ -63,7 +67,6 @@ export class NotificacionesPage implements OnInit {
   }
 
   async cargarNotificaciones() {
-    // 🌟 AHORA SÍ LE DECIMOS A LA BDD QUÉ BANDEJA EXACTA QUEREMOS VER
     this.notificaciones = await this.dbService.obtenerNotificacionesUsuario(
       this.correoUsuario,
       this.rolUsuario,
@@ -75,6 +78,26 @@ export class NotificacionesPage implements OnInit {
   esLeida(notif: any): boolean {
     const leidaPor = notif.leida_por || [];
     return leidaPor.includes(this.correoUsuario);
+  }
+
+  // 🌟 PUNTO #11: Marcado masivo en un solo toque
+  async marcarTodasLeidas() {
+    const cantidad = await this.dbService.marcarTodasComoLeidas(this.correoUsuario, this.contextoBandeja);
+    if (cantidad > 0) {
+      this.notificaciones = this.notificaciones.map(n => ({
+        ...n,
+        leida_por: [...new Set([...(n.leida_por || []), this.correoUsuario])]
+      }));
+      const toast = await this.toastController.create({
+        message: `${cantidad} notificación(es) marcada(s) como leída(s).`,
+        duration: 2500,
+        position: 'top',
+        icon: 'checkmark-done-outline',
+        cssClass: 'toast-premium-gietaes toast-exito',
+        mode: 'ios'
+      });
+      await toast.present();
+    }
   }
 
   async seleccionarNotificacion(notif: any) {
@@ -91,7 +114,7 @@ export class NotificacionesPage implements OnInit {
     } else if (rolDestino === 'ADMIN' || rolDestino === 'COORDINADOR') {
       this.router.navigate(['/admin-postulaciones']);
     } else {
-      if (tipo === 'TUTORIA' || tipo === 'RECORDATORIO') {
+      if (['TUTORIA', 'RECORDATORIO', 'REPROGRAMACION', 'REASIGNACION'].includes(tipo)) {
         this.router.navigate(['/tabs/mis-tutorias']); 
       } else {
         this.router.navigate(['/tabs/avisos']);
@@ -99,10 +122,11 @@ export class NotificacionesPage implements OnInit {
     }
   }
 
-  // 🌟 BOTÓN DE REGRESAR INTELIGENTE
   regresar() {
     if (this.contextoBandeja === 'TUTOR') {
       this.router.navigate(['/tabs-tutor/tutorias']);
+    } else if (this.contextoBandeja === 'ADMIN' || this.contextoBandeja === 'COORDINADOR') {
+      this.router.navigate(['/admin-postulaciones']);
     } else {
       this.router.navigate(['/tabs/horarios']);
     }
@@ -110,7 +134,9 @@ export class NotificacionesPage implements OnInit {
 
   obtenerIcono(tipo: string): string {
     switch (tipo) {
-      case 'TUTORIA': return 'calendar-outline';
+      case 'TUTORIA':
+      case 'REPROGRAMACION': return 'calendar-outline';
+      case 'REASIGNACION': return 'swap-horizontal-outline';
       case 'POSTULACION': return 'document-text-outline';
       case 'AVISO': return 'megaphone-outline';
       default: return 'notifications-outline';

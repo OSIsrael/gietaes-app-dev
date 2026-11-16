@@ -12,11 +12,20 @@
 
 <ion-content class="ion-padding fondo-notificaciones">
 
-  <div class="header-seccion">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <h2 class="titulo-seccion">Centro de Notificaciones</h2>
+  <div class="header-seccion" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h2 class="titulo-seccion" style="margin: 0;">Centro de Notificaciones</h2>
+      </div>
+      <p class="subtitulo-seccion" style="margin-top: 4px;">Novedades, tutorías y comunicados relevantes para ti.</p>
     </div>
-    <p class="subtitulo-seccion">Novedades, tutorías y comunicados relevantes para ti.</p>
+
+    <!-- 🌟 PUNTO #11: BOTÓN MARCAR TODAS COMO LEÍDAS -->
+    <ion-button *ngIf="!cargando && haySinLeer" size="small" fill="outline" (click)="marcarTodasLeidas()"
+                style="--border-color: #003366; --color: #003366; font-weight: 800; --border-radius: 10px; height: 34px;">
+      <ion-icon name="checkmark-done-outline" slot="start"></ion-icon>
+      Marcar todas como leídas
+    </ion-button>
   </div>
 
   <div *ngIf="cargando" class="estado-vacio">

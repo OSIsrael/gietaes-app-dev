@@ -26,7 +26,7 @@
   <div class="linea-separadora"></div>
 </ion-header>
 
-<ion-content class="fondo-app">
+<ion-content class="fondo-app" style="color-scheme: light;">
   <div class="ion-padding" style="padding-bottom: 150px;">
     <h2 class="titulo-azul">REPORTE DE ASISTENCIA:</h2>
     <p style="color: #64748b; font-size: 0.9rem; margin-top: -10px; margin-bottom: 25px;">
@@ -37,7 +37,7 @@
       Cargando base de datos de estudiantes y docentes...
     </div>
 
- <!-- 🌟 ESTUDIANTE TITULAR -->
+    <!-- ESTUDIANTE TITULAR -->
     <div style="margin-top: 15px;" *ngIf="estudiantesSeleccionados.length > 0">
       <h3 style="color: #003366; font-size: 1rem; margin-bottom: 10px; font-weight: 900;">1. Estudiante Solicitante:</h3>
       <div *ngFor="let est of estudiantesSeleccionados; let i = index" class="alumno-card-asistencia">
@@ -56,7 +56,7 @@
           <div style="flex: 1;">
             <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">¿Asistió?</label>
             <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; --min-height: 35px;">
-              <ion-select [(ngModel)]="est.asistio" interface="popover" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
+              <ion-select [(ngModel)]="est.asistio" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
                 <ion-select-option value="SI">SÍ</ion-select-option>
                 <ion-select-option value="NO">NO</ion-select-option>
               </ion-select>
@@ -65,7 +65,7 @@
           <div style="flex: 1;" *ngIf="est.asistio === 'SI'">
             <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">¿Participó?</label>
             <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; --min-height: 35px;">
-              <ion-select [(ngModel)]="est.participo" interface="popover" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
+              <ion-select [(ngModel)]="est.participo" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
                 <ion-select-option value="SI">SÍ</ion-select-option>
                 <ion-select-option value="NO">NO</ion-select-option>
               </ion-select>
@@ -73,7 +73,7 @@
           </div>
         </div>
 
-        <!-- 🌟 NUEVO: CAMPO DEL DOCENTE VISIBLE Y EDITABLE -->
+        <!-- CAMPO DEL DOCENTE VISIBLE Y EDITABLE -->
         <div style="margin-top: 12px; position: relative;" *ngIf="est.asistio === 'SI'">
           <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Docente de la Materia:</label>
           <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; --min-height: 35px;">
@@ -91,11 +91,11 @@
       </div>
     </div>
 
-  <!-- 🌟 SECCIÓN SEPARADA PARA INVITADOS (LOS QUE SE UNIERON POR CÓDIGO) -->
+    <!-- SECCIÓN SEPARADA PARA INVITADOS -->
     <div style="margin-top: 25px;" *ngIf="estudiantesInvitados.length > 0">
       <h3 style="color: #003366; font-size: 1rem; margin-bottom: 10px; font-weight: 900;">2. Invitados (Unidos por código):</h3>
       <p style="color: #ef4444; font-size: 0.75rem; font-style: italic; margin-top: -5px; font-weight: bold;">
-        * Completa el docente y la derivación de cada invitado.
+        * Verifica el docente y la derivación de cada invitado.
       </p>
 
       <div *ngFor="let invitado of estudiantesInvitados" class="alumno-card-asistencia invitado">
@@ -111,7 +111,7 @@
           <div style="flex: 1;">
             <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">¿Asistió?</label>
             <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; --min-height: 35px;">
-              <ion-select [(ngModel)]="invitado.asistio" interface="popover" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
+              <ion-select [(ngModel)]="invitado.asistio" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
                 <ion-select-option value="SI">SÍ</ion-select-option>
                 <ion-select-option value="NO">NO</ion-select-option>
               </ion-select>
@@ -120,7 +120,7 @@
           <div style="flex: 1;" *ngIf="invitado.asistio === 'SI'">
             <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">¿Participó?</label>
             <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; --min-height: 35px;">
-              <ion-select [(ngModel)]="invitado.participo" interface="popover" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
+              <ion-select [(ngModel)]="invitado.participo" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
                 <ion-select-option value="SI">SÍ</ion-select-option>
                 <ion-select-option value="NO">NO</ion-select-option>
               </ion-select>
@@ -128,10 +128,9 @@
           </div>
         </div>
 
-        <!-- 🌟 NUEVO: CAMPO DE DOCENTE Y DERIVACIÓN PARA INVITADOS -->
+        <!-- CAMPO DE DOCENTE Y DERIVACIÓN PARA INVITADOS -->
         <div style="margin-top: 12px; position: relative;" *ngIf="invitado.asistio === 'SI'">
           
-          <!-- DOCENTE (Con autocompletado inteligente) -->
           <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Docente de la Materia:</label>
           <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; margin-bottom: 10px; --min-height: 35px;">
             <ion-icon name="school-outline" slot="start" style="color: #94a3b8; margin-right: 8px; font-size: 1.1rem;"></ion-icon>
@@ -144,15 +143,14 @@
             </div>
           </div>
 
-          <!-- DERIVACIÓN (Con opciones institucionales) -->
           <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">Tipo de Derivación:</label>
           <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; --min-height: 35px;">
             <ion-icon name="git-network-outline" slot="start" style="color: #94a3b8; margin-right: 8px; font-size: 1.1rem;"></ion-icon>
-            <ion-select [(ngModel)]="invitado.derivacion" interface="popover" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
-              <ion-select-option value="DECISIÓN PROPIA">DECISION PROPIA</ion-select-option>
+            <ion-select [(ngModel)]="invitado.derivacion" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
+              <ion-select-option value="DECISIÓN PROPIA">DECISIÓN PROPIA</ion-select-option>
               <ion-select-option value="PROYECTO LALA">PROYECTO LALA</ion-select-option>
-              <ion-select-option value="CONSEJERIA ACADEMICA">CONSEJERIA ACADEMICA</ion-select-option>
-              <ion-select-option value="DIRECCION DE CARRERA">DIRECCION DE CARRERA</ion-select-option>
+              <ion-select-option value="CONSEJERÍA ACADÉMICA">CONSEJERÍA ACADÉMICA</ion-select-option>
+              <ion-select-option value="DIRECCIÓN DE CARRERA">DIRECCIÓN DE CARRERA</ion-select-option>
               <ion-select-option value="DOCENTE DE LA CARRERA">DOCENTE DE LA CARRERA</ion-select-option>
             </ion-select>
           </ion-item>
@@ -162,7 +160,7 @@
       </div>
     </div>
 
-    <!-- 🌟 BÚSQUEDA MANUAL DE ESTUDIANTES -->
+    <!-- BÚSQUEDA MANUAL DE ESTUDIANTES -->
     <div *ngIf="!tutoriaPreCargada" style="margin-top: 15px;">
       <label style="color: #003366; font-size: 0.8rem; font-weight: bold;">Agregar Alumno Manual</label>
       <div style="position: relative; margin-top: 5px;">
@@ -179,26 +177,50 @@
       </div>
     </div>
 
- <!-- 🌟 DATOS DE LA TUTORIA -->
+    <!-- DATOS DE LA TUTORIA -->
     <div *ngIf="!cargando" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #cbd5e1; border-top: 4px solid #003366;">
       <h3 class="subtitulo-seccion" style="margin-top: 0; color: #003366; font-weight: 900;"><ion-icon name="book-outline"></ion-icon> Datos de la Tutoría</h3>
 
-      <!-- 🌟 AQUÍ ESTÁ EL TIPO DE TUTORÍA CON BOTÓN EDITAR -->
+      <!-- SELECCIÓN DE MATERIA SI ES REGISTRO MANUAL -->
+      <div style="margin-bottom: 15px;" *ngIf="!tutoriaPreCargada">
+        <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Materia Impartida</label>
+        <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; margin-top: 5px; border: 1px solid #e2e8f0;">
+          <ion-icon slot="start" name="book-outline" style="color: #003366;"></ion-icon>
+          <ion-select [(ngModel)]="form.materia" placeholder="Selecciona la materia..." interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold;">
+            <ion-select-option *ngFor="let mat of materiasTutor" [value]="mat">{{ mat }}</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <!-- TIPO DE TUTORÍA (PUNTO #5: CONSULTA vs PROCESO) -->
       <div style="margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
         <label style="color: #64748b; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Tipo de Tutoría</label>
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        
+        <!-- Si viene precargada, muestra el badge + botón cambiar con motivo -->
+        <div *ngIf="tutoriaPreCargada" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <span style="font-weight: 900; color: #003366; font-size: 0.9rem;">{{ form.tipo_tutoria || 'CONSULTA' }}</span>
           <ion-button fill="clear" size="small" (click)="solicitarCambioTipoTutoria()" style="--color: #003366;">
             <ion-icon name="create-outline" slot="icon-only" style="font-size: 1.2rem;"></ion-icon>
           </ion-button>
         </div>
+
+        <!-- Si NO viene precargada, selector directo -->
+        <ion-item *ngIf="!tutoriaPreCargada" lines="none" style="--background: #ffffff; border-radius: 6px; border: 1px solid #cbd5e1; --min-height: 38px;">
+          <ion-select [(ngModel)]="form.tipo_tutoria" (ionChange)="alCambiarTipoTutoriaDirecto()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: 900; font-size: 0.85rem;">
+            <ion-select-option value="CONSULTA">CONSULTA</ion-select-option>
+            <ion-select-option value="PROCESO">PROCESO</ion-select-option>
+            <ion-select-option value="PRÁCTICA">PRÁCTICA</ion-select-option>
+            <ion-select-option value="INTENSIVA">INTENSIVA</ion-select-option>
+          </ion-select>
+        </ion-item>
+
         <p *ngIf="form.motivo_cambio_tipo" style="font-size: 0.75rem; color: #d97706; margin: 5px 0 0 0; font-style: italic;">
           Motivo cambio: {{ form.motivo_cambio_tipo }}
         </p>
       </div>
 
-      <!-- 🌟 ESPACIO FÍSICO / AULA -->
-      <div style="margin-bottom: 15px;" *ngIf="form.modalidad === 'Presencial' || tutoriaPreCargada">
+      <!-- ESPACIO FÍSICO / AULA -->
+      <div style="margin-bottom: 15px;" *ngIf="form.modalidad === 'Presencial' || form.modalidad === 'PRESENCIAL' || tutoriaPreCargada">
         <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Espacio Físico Usado (Aula / Laboratorio)</label>
         <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; margin-top: 5px; border: 1px solid #e2e8f0;">
           <ion-icon slot="start" name="business-outline" style="color: #003366;"></ion-icon>
@@ -212,12 +234,12 @@
         <ion-textarea [(ngModel)]="form.tema_tratado" rows="2" placeholder="Ej: Vectores en R3..."></ion-textarea>
       </ion-item>
 
-      <!-- 🌟 NUEVA DURACIÓN (Selectores limpios en línea gráfica) -->
+      <!-- DURACIÓN -->
       <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Duración de la Sesión</label>
       <div style="display: flex; gap: 10px; margin-bottom: 15px; margin-top: 5px;">
         <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
           <ion-icon slot="start" name="time-outline" style="color: #003366;"></ion-icon>
-          <ion-select [(ngModel)]="form.horas_duracion" interface="popover" style="width: 100%; color: #003366; font-weight: bold;">
+          <ion-select [(ngModel)]="form.horas_duracion" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold;">
             <ion-select-option [value]="0">0 horas</ion-select-option>
             <ion-select-option [value]="1">1 hora</ion-select-option>
             <ion-select-option [value]="2">2 horas</ion-select-option>
@@ -227,7 +249,7 @@
         </ion-item>
 
         <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
-          <ion-select [(ngModel)]="form.minutos_duracion" interface="popover" style="width: 100%; color: #003366; font-weight: bold;">
+          <ion-select [(ngModel)]="form.minutos_duracion" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold;">
             <ion-select-option [value]="0">0 min</ion-select-option>
             <ion-select-option [value]="15">15 min</ion-select-option>
             <ion-select-option [value]="30">30 min</ion-select-option>
@@ -243,7 +265,80 @@
         </ion-item>
       </div>
     </div>
-    <!-- 🌟 EVALUACIÓN OBLIGATORIA DEL TUTOR -->
+
+    <!-- SEGUIMIENTO DE TUTORÍA DE PROCESO (PUNTO #5) -->
+    <div *ngIf="!cargando && form.tipo_tutoria === 'PROCESO'" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 16px; margin-top: 25px; box-shadow: 0 4px 10px rgba(0, 51, 102, 0.06); border: 1.5px solid #cbd5e1; border-top: 4px solid #003366;">
+      <h3 class="subtitulo-seccion" style="margin-top: 0; color: #003366; font-weight: 900; display: flex; align-items: center; gap: 8px;">
+        <ion-icon name="repeat-outline" style="color: #EAB308; font-size: 1.3rem;"></ion-icon> Seguimiento: Tutoría de Proceso
+      </h3>
+      <p style="color: #475569; font-size: 0.85rem; margin-bottom: 15px; line-height: 1.4;">
+        Elige si deseas agendar directamente la siguiente sesión para el estudiante o dar por finalizado este proceso:
+      </p>
+
+      <div style="display: flex; gap: 12px; margin-bottom: 14px;">
+        <div role="button"
+             (click)="seleccionarContinuarProceso()"
+             [style.background]="accionProceso === 'CONTINUAR' ? '#003366' : '#ffffff'"
+             [style.color]="accionProceso === 'CONTINUAR' ? '#ffffff' : '#003366'"
+             style="flex: 1; border: 2px solid #003366; border-radius: 10px; padding: 12px 10px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-weight: 900; font-size: 0.82rem; letter-spacing: 0.4px; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(0, 51, 102, 0.1);">
+          <ion-icon name="arrow-forward-circle-outline" [style.color]="accionProceso === 'CONTINUAR' ? '#EAB308' : '#003366'" style="font-size: 1.3rem;"></ion-icon>
+          <span>CONTINUAR PROCESO</span>
+        </div>
+
+        <div role="button"
+             (click)="seleccionarFinalizarProceso()"
+             [style.background]="accionProceso === 'FINALIZAR' ? '#10b981' : '#ffffff'"
+             [style.color]="accionProceso === 'FINALIZAR' ? '#ffffff' : '#059669'"
+             style="flex: 1; border: 2px solid #10b981; border-radius: 10px; padding: 12px 10px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-weight: 900; font-size: 0.82rem; letter-spacing: 0.4px; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);">
+          <ion-icon name="checkmark-done-circle-outline" [style.color]="accionProceso === 'FINALIZAR' ? '#ffffff' : '#059669'" style="font-size: 1.3rem;"></ion-icon>
+          <span>FINALIZAR PROCESO</span>
+        </div>
+      </div>
+
+      <div *ngIf="accionProceso === 'CONTINUAR' && sesionProcesoConfirmada" style="background: #f8fafc; padding: 14px; border-radius: 10px; border: 1.5px solid #003366; border-left: 5px solid #EAB308;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="color: #003366; font-weight: 900; font-size: 0.85rem; text-transform: uppercase;">
+            Próxima Sesión Agendada:
+          </span>
+          <ion-button fill="clear" size="small" (click)="seleccionarContinuarProceso()" style="--color: #003366; font-weight: 800; margin: 0; height: 28px;">
+            <ion-icon name="create-outline" slot="start"></ion-icon> Cambiar
+          </ion-button>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+          <span style="background: #003366; color: #ffffff; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800;">
+            {{ obtenerNombreDiaDesdeFecha(fechaSiguienteProceso) }}, {{ formatearFechaCorta(fechaSiguienteProceso) }}
+          </span>
+          <span style="background: #EAB308; color: #003366; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 900;">
+            {{ horaInicioProceso }} - {{ horaFinProceso }}
+          </span>
+          <span style="background: #e2e8f0; color: #003366; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800;">
+            {{ modalidadSiguienteProceso }}
+          </span>
+        </div>
+
+        <p style="margin: 0; font-size: 0.75rem; color: #0f766e; font-weight: bold;">
+          * Aparecerá directamente como CONFIRMADA en el panel del estudiante y en tu agenda ("Este día nos volvemos a ver").
+        </p>
+      </div>
+
+      <div *ngIf="accionProceso === 'CONTINUAR' && !sesionProcesoConfirmada" style="background: rgba(234, 179, 8, 0.12); padding: 12px; border-radius: 10px; border-left: 4px solid #EAB308; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <p style="margin: 0; color: #003366; font-size: 0.8rem; font-weight: bold;">
+          Selecciona la fecha y hora de la siguiente sesión en el calendario.
+        </p>
+        <ion-button size="small" (click)="seleccionarContinuarProceso()" style="--background: #003366; --color: #ffffff; font-weight: 800; --border-radius: 8px;">
+          Abrir Calendario
+        </ion-button>
+      </div>
+
+      <div *ngIf="accionProceso === 'FINALIZAR'" style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 10px; border-left: 4px solid #10b981;">
+        <p style="margin: 0; color: #065f46; font-size: 0.82rem; font-weight: bold;">
+          Al registrar esta asistencia, la Tutoría de Proceso se dará por FINALIZADA y se notificará al estudiante el cierre de su seguimiento.
+        </p>
+      </div>
+    </div>
+
+    <!-- EVALUACIÓN OBLIGATORIA DEL TUTOR -->
     <div *ngIf="!cargando" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #cbd5e1; border-top: 4px solid #EAB308;">
       <h3 class="subtitulo-seccion" style="margin-top: 0; color: #003366; font-weight: 900;">
         <ion-icon name="star"></ion-icon> Califica tu Experiencia
@@ -272,7 +367,104 @@
 
   </div>
 
-  <!-- POPOVERS DE CABECERA (Se mantienen igual) -->
+  <!-- MODAL DE AGENDAMIENTO DE PRÓXIMA SESIÓN -->
+  <ion-modal [isOpen]="mostrarModalProceso" (didDismiss)="cerrarModalProceso()" class="modal-gietaes-proceso">
+    <ng-template>
+      <div style="display: flex; flex-direction: column; background: #ffffff; height: 100%; color-scheme: light;">
+        
+        <div style="background: #003366; padding: 16px 20px; border-bottom: 3px solid #EAB308; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <ion-icon name="calendar-outline" style="color: #EAB308; font-size: 1.5rem;"></ion-icon>
+            <div>
+              <h3 style="color: #ffffff; font-size: 1rem; font-weight: 900; margin: 0; letter-spacing: 0.4px;">AGENDAR SIGUIENTE SESIÓN</h3>
+              <p style="color: #cbd5e1; font-size: 0.72rem; margin: 2px 0 0 0;">"Este día nos volvemos a ver" • {{ form.materia }}</p>
+            </div>
+          </div>
+          <ion-icon name="close-outline" (click)="cerrarModalProceso()" style="font-size: 1.8rem; color: #ffffff; cursor: pointer;"></ion-icon>
+        </div>
+
+        <div style="overflow-y: auto; padding: 18px; flex-grow: 1; background: #f8fafc;">
+          
+          <label style="color: #003366; font-size: 0.78rem; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 8px;">
+            1. Selecciona la Fecha en el Calendario:
+          </label>
+          <div style="background: #ffffff; border-radius: 12px; border: 1.5px solid #cbd5e1; padding: 8px; margin-bottom: 16px; display: flex; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <ion-datetime
+              presentation="date"
+              locale="es-ES"
+              [value]="fechaSiguienteProceso"
+              [min]="fechaMinimaHoy"
+              [isDateEnabled]="fechasPermitidasProceso"
+              (ionChange)="alCambiarFechaProceso($event)"
+              style="--background: #ffffff; --title-color: #003366; color-scheme: light; width: 100%; max-width: 340px;">
+            </ion-datetime>
+          </div>
+
+          <label style="color: #003366; font-size: 0.78rem; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 6px;">
+            2. Horario de la Siguiente Tutoría:
+          </label>
+          <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+            <div style="flex: 1;">
+              <span style="font-size: 0.7rem; color: #64748b; font-weight: 800; text-transform: uppercase;">Hora Inicio</span>
+              <ion-item lines="none" style="--background: #ffffff; border-radius: 8px; border: 1.5px solid #cbd5e1; margin-top: 4px; --min-height: 42px;">
+                <ion-icon name="time-outline" slot="start" style="color: #003366; margin-right: 6px;"></ion-icon>
+                <ion-select [(ngModel)]="horaInicioProceso" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: 900; font-size: 0.85rem;">
+                  <ion-select-option *ngFor="let h of horasDisponiblesProceso" [value]="h">{{ h }}</ion-select-option>
+                </ion-select>
+              </ion-item>
+            </div>
+
+            <div style="flex: 1;">
+              <span style="font-size: 0.7rem; color: #64748b; font-weight: 800; text-transform: uppercase;">Hora Fin</span>
+              <ion-item lines="none" style="--background: #ffffff; border-radius: 8px; border: 1.5px solid #cbd5e1; margin-top: 4px; --min-height: 42px;">
+                <ion-icon name="time-outline" slot="start" style="color: #003366; margin-right: 6px;"></ion-icon>
+                <ion-select [(ngModel)]="horaFinProceso" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: 900; font-size: 0.85rem;">
+                  <ion-select-option *ngFor="let h of horasDisponiblesProceso" [value]="h">{{ h }}</ion-select-option>
+                </ion-select>
+              </ion-item>
+            </div>
+          </div>
+
+          <label style="color: #003366; font-size: 0.78rem; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 6px;">
+            3. Modalidad de la Sesión:
+          </label>
+          <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+            <div role="button"
+                 (click)="modalidadSiguienteProceso = 'Presencial'"
+                 [style.background]="modalidadSiguienteProceso === 'Presencial' ? '#003366' : '#ffffff'"
+                 [style.color]="modalidadSiguienteProceso === 'Presencial' ? '#ffffff' : '#003366'"
+                 style="flex: 1; border: 1.5px solid #003366; border-radius: 8px; padding: 10px; text-align: center; font-weight: 900; font-size: 0.85rem; cursor: pointer;">
+              Presencial
+            </div>
+            <div role="button"
+                 (click)="modalidadSiguienteProceso = 'Virtual'"
+                 [style.background]="modalidadSiguienteProceso === 'Virtual' ? '#003366' : '#ffffff'"
+                 [style.color]="modalidadSiguienteProceso === 'Virtual' ? '#ffffff' : '#003366'"
+                 style="flex: 1; border: 1.5px solid #003366; border-radius: 8px; padding: 10px; text-align: center; font-weight: 900; font-size: 0.85rem; cursor: pointer;">
+              Virtual
+            </div>
+          </div>
+
+          <p style="font-size: 0.75rem; color: #d97706; font-weight: bold; margin: 4px 0 0 0;">
+            * Sábados obligatoriamente Virtual (máximo hasta las 13:00).
+          </p>
+        </div>
+
+        <div style="background: #ffffff; padding: 14px 18px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; flex-shrink: 0;">
+          <ion-button fill="outline" (click)="cerrarModalProceso()" style="flex: 1; --border-color: #cbd5e1; --color: #475569; font-weight: 800; --border-radius: 10px;">
+            Cancelar
+          </ion-button>
+          <ion-button (click)="confirmarDatosSiguienteSesion()" style="flex: 2; --background: #EAB308; --color: #003366; font-weight: 900; --border-radius: 10px;">
+            <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+            Confirmar Fecha y Hora
+          </ion-button>
+        </div>
+
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- POPOVERS DE CABECERA -->
   <ion-popover [isOpen]="menuRolAbierto" [event]="eventoRol" (didDismiss)="menuRolAbierto = false" mode="ios" style="--background: #ffffff; --width: 220px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
     <ng-template>
       <ion-content class="ion-padding-vertical" style="--background: #ffffff;">

@@ -7,14 +7,14 @@ import {
   personCircleOutline, bookOutline, logOutOutline, peopleOutline, 
   settingsOutline, businessOutline, mailOutline, notificationsOutline, 
   personOutline, schoolOutline, analyticsOutline, chevronDownOutline, 
-  briefcaseOutline, shieldCheckmarkOutline, helpCircleOutline
+  briefcaseOutline, shieldCheckmarkOutline, helpCircleOutline, calendarOutline
 } from 'ionicons/icons';
 import { Auth, signOut } from '@angular/fire/auth';
 import { 
   IonContent, IonHeader, IonToolbar, 
   IonButtons, IonButton, IonIcon,
   NavController, ToastController, AlertController,
-  IonSegment, IonSegmentButton, IonLabel, IonPopover, IonList, IonItem
+  IonSelect, IonSelectOption, IonLabel, IonPopover, IonList, IonItem
 } from '@ionic/angular/standalone';
 
 import { DatabaseService } from '../../services/database';
@@ -29,7 +29,7 @@ import Chart from 'chart.js/auto';
   imports: [
     IonContent, IonHeader, IonToolbar, CommonModule, FormsModule,
     RouterModule, IonButtons, IonButton, IonIcon, 
-    IonSegment, IonSegmentButton, IonLabel, IonPopover, IonList, IonItem
+    IonSelect, IonSelectOption, IonLabel, IonPopover, IonList, IonItem
   ]
 })
 export class PerfilPage implements OnInit {
@@ -49,15 +49,17 @@ export class PerfilPage implements OnInit {
   esAdmin: boolean = false;
   hayNotificacionesSinLeer: boolean = false;
   
-  // 🌟 VARIABLE CLAVE PARA OCULTAR EL BOTÓN
   puedePostularse: boolean = true; 
 
   @ViewChild('barCanvas', { static: false }) private barCanvas!: ElementRef;
   graficoBarras: any;
   totalTutorias: number = 0;
+  totalHorasEstudiante: number = 0;
 
-  filtroPeriodo: string = 'ACTUAL';
+  // 🌟 PUNTO #16: Selector de período académico e histórico
+  filtroPeriodo: string = '';
   periodoActualApp: string = '';
+  listaPeriodos: string[] = [];
 
   menuRolAbierto: boolean = false;
   eventoRol: any = null;
@@ -71,7 +73,7 @@ export class PerfilPage implements OnInit {
       notificationsOutline, personCircleOutline, mailOutline, businessOutline, 
       bookOutline, settingsOutline, logOutOutline, peopleOutline, personOutline, 
       schoolOutline, analyticsOutline, chevronDownOutline, briefcaseOutline, 
-      shieldCheckmarkOutline, helpCircleOutline
+      shieldCheckmarkOutline, helpCircleOutline, calendarOutline
     });
   }
 
@@ -90,45 +92,44 @@ export class PerfilPage implements OnInit {
   ngOnInit() {}
   
   async ionViewWillEnter() {
-    await this.dbService.cargarConfiguracionGlobal();
-    this.periodoActualApp = this.dbService.periodo_actual;
+    await this.dbService.cargarConfiguracionGlobal(true);
+    this.periodoActualApp = String(this.dbService.periodo_actual || '').trim();
+    if (!this.filtroPeriodo) {
+      this.filtroPeriodo = this.periodoActualApp || 'HISTORICO';
+    }
 
-    const correoGuardado = localStorage.getItem('correo');
+    const correoGuardado = (localStorage.getItem('correo') || '').toLowerCase().trim();
     if (!correoGuardado) {
       this.navCtrl.navigateRoot('/login');
       return;
     }
 
-    this.usuario.correo = correoGuardado; // Asignamos el correo para que se vea en el popover
+    this.usuario.correo = correoGuardado;
 
     let dataPerfil: any = null;
     let coleccionOrigen = 'Estudiantes';
 
-    // 🌟 1. VERIFICAMOS SI ES ADMIN
     const adminSnap = await getDoc(doc(this.firestore, 'Administradores', correoGuardado));
     if (adminSnap.exists()) {
       dataPerfil = adminSnap.data();
       coleccionOrigen = 'Administradores';
-      this.puedePostularse = false; // El Admin no se postula
+      this.puedePostularse = false;
     } else {
-      // 🌟 2. VERIFICAMOS SI ES TUTOR
       const tutorSnap = await getDoc(doc(this.firestore, 'Tutores', correoGuardado));
       if (tutorSnap.exists()) {
         dataPerfil = tutorSnap.data();
         coleccionOrigen = 'Tutores';
-        this.puedePostularse = false; // 🌟 EL SECRETO: Si es tutor oficial, el botón DESAPARECE
+        this.puedePostularse = false;
       } else {
-        // 🌟 3. VERIFICAMOS SI ES ESTUDIANTE NORMAL
         const estSnap = await getDoc(doc(this.firestore, 'Estudiantes', correoGuardado));
         if (estSnap.exists()) {
           dataPerfil = estSnap.data();
           coleccionOrigen = 'Estudiantes';
-          this.puedePostularse = true; // Solo el estudiante normal puede ver el botón
+          this.puedePostularse = true;
         }
       }
     }
 
-    // Actualizamos los datos visuales
     if (dataPerfil) {
       this.usuario.nombre = (dataPerfil['nombre_completo'] || dataPerfil['nombre'] || 'USUARIO').toUpperCase();
       this.usuario.sede = (dataPerfil['sede'] || 'CUENCA').toUpperCase();
@@ -151,7 +152,7 @@ export class PerfilPage implements OnInit {
     await this.verificarNotificaciones(correoGuardado, this.rolUsuario, this.usuario.sede);
     await this.cargarPermisosPaneles(correoGuardado); 
     
-    setTimeout(() => { this.cargarEstadisticasEstudiante(); }, 500);
+    setTimeout(() => { this.cargarEstadisticasEstudiante(); }, 300);
   }
 
   async cargarPermisosPaneles(correo: string) {
@@ -159,27 +160,10 @@ export class PerfilPage implements OnInit {
     this.tienePanelAdmin = false;
     if (!correo) return;
     try {
-      const qEst = query(collection(this.firestore, 'Estudiantes'), where('correo', '==', correo));
-      const snapEst = await getDocs(qEst);
-      if (!snapEst.empty) {
-        const rolDB = (snapEst.docs[0].data()['rol'] || snapEst.docs[0].data()['Rol'] || '').toUpperCase().trim();
-        if (rolDB === 'TUTOR') {
-          this.tienePanelTutor = true;
-          this.puedePostularse = false; // Doble validación por si acaso
-        }
-        if (rolDB === 'COORDINADOR' || rolDB === 'ADMIN') {
-          this.tienePanelTutor = true;
-          this.tienePanelAdmin = true;
-        }
-      }
-      if (!this.tienePanelTutor) {
-        const qTut = query(collection(this.firestore, 'Tutores'), where('correo', '==', correo));
-        const snapTut = await getDocs(qTut);
-        if (!snapTut.empty) {
-          this.tienePanelTutor = true;
-          this.puedePostularse = false; // Si está en Tutores, no postula
-        }
-      }
+      const permisos = await this.dbService.obtenerPermisosPaneles(correo);
+      this.tienePanelTutor = permisos.tienePanelTutor;
+      this.tienePanelAdmin = permisos.tienePanelAdmin;
+      if (this.tienePanelTutor) this.puedePostularse = false;
     } catch (error) {
       console.error("Error cargando permisos:", error);
     }
@@ -192,29 +176,75 @@ export class PerfilPage implements OnInit {
   irAPerfil() { this.menuPerfilAbierto = false; }
   async cerrarSesion() { this.menuPerfilAbierto = false; try { await signOut(this.auth); localStorage.clear(); this.navCtrl.navigateRoot('/login'); } catch (error) { localStorage.clear(); this.navCtrl.navigateRoot('/login'); } }
 
+  // ==========================================================================
+  // 🌟 PUNTO #16: ESTADÍSTICAS DEL ESTUDIANTE FILTRADAS POR PERÍODO / HISTÓRICO
+  // ==========================================================================
   async cargarEstadisticasEstudiante() {
     try {
-      const q = query(collection(this.firestore, 'Reservas'), where('correoEstudiante', '==', this.usuario.correo));
-      const snapshot = await getDocs(q);
-      
-      let reservas = snapshot.docs.map(doc => doc.data());
-      
-      if (this.filtroPeriodo === 'ACTUAL') {
-        reservas = reservas.filter(res => res['periodo'] === this.periodoActualApp);
+      const correoLimpio = this.usuario.correo.toLowerCase().trim();
+
+      // Consultamos tanto Asistencias (impartidas) como Reservas (agendadas/confirmadas)
+      const [snapAsistencias, snapReservas] = await Promise.all([
+        getDocs(query(collection(this.firestore, 'Asistencias'), where('correo_estudiante', '==', correoLimpio))),
+        getDocs(query(collection(this.firestore, 'Reservas'), where('correoEstudiante', '==', correoLimpio)))
+      ]);
+
+      const periodosSet = new Set<string>();
+      if (this.periodoActualApp) periodosSet.add(this.periodoActualApp);
+
+      const registros: { materia: string; periodo: string; minutos: number }[] = [];
+
+      snapAsistencias.forEach(d => {
+        const data = d.data();
+        const per = String(data['periodo'] || this.periodoActualApp || '').trim();
+        if (per) periodosSet.add(per);
+        const mins = (Number(data['horas_duracion'] || 0) * 60) + Number(data['minutos_duracion'] || 0);
+        registros.push({
+          materia: data['materia'] || 'Otra',
+          periodo: per,
+          minutos: mins > 0 ? mins : 60
+        });
+      });
+
+      snapReservas.forEach(d => {
+        const data = d.data();
+        const estado = String(data['estado'] || '').toUpperCase();
+        if (estado === 'RECHAZADA' || estado === 'CANCELADA') return;
+        const per = String(data['periodo'] || this.periodoActualApp || '').trim();
+        if (per) periodosSet.add(per);
+        const mins = Number(data['duracion_horas'] || 1) * 60;
+        registros.push({
+          materia: data['materia'] || 'Otra',
+          periodo: per,
+          minutos: mins
+        });
+      });
+
+      this.listaPeriodos = Array.from(periodosSet).filter(Boolean).sort().reverse();
+      if (!this.filtroPeriodo) {
+        this.filtroPeriodo = this.periodoActualApp || 'HISTORICO';
       }
 
-      this.totalTutorias = reservas.length;
+      const filtrados = this.filtroPeriodo === 'HISTORICO'
+        ? registros
+        : registros.filter(r => r.periodo === this.filtroPeriodo);
+
+      this.totalTutorias = filtrados.length;
+      const totalMinutos = filtrados.reduce((acc, r) => acc + r.minutos, 0);
+      this.totalHorasEstudiante = Math.round((totalMinutos / 60) * 10) / 10;
+
       const conteoMaterias: { [key: string]: number } = {};
-      
-      reservas.forEach(data => {
-        const materia = data['materia'] || 'Otra';
-        conteoMaterias[materia] = (conteoMaterias[materia] || 0) + 1;
+      filtrados.forEach(r => {
+        conteoMaterias[r.materia] = (conteoMaterias[r.materia] || 0) + 1;
       });
 
       const labels = Object.keys(conteoMaterias);
       const dataGrafico = Object.values(conteoMaterias);
       this.generarGraficoBarras(labels, dataGrafico);
-    } catch (error) {}
+      if (this.cdr) this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error cargando estadísticas estudiante:', error);
+    }
   }
 
   generarGraficoBarras(labels: string[], data: number[]) {

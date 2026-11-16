@@ -1,10 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { 
   Firestore, collection, addDoc, query, where, 
-  getDocs, doc, setDoc, collectionData, getDoc, updateDoc
+  getDocs, doc, setDoc, collectionData, getDoc, updateDoc, writeBatch
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
-import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
+import { Storage } from '@angular/fire/storage';
 
 export interface MateriaCatalogo {
   sede: string;
@@ -128,12 +128,10 @@ export class DatabaseService {
       );
       
       const querySnapshot = await getDocs(q);
-      const tutores = querySnapshot.docs.map(doc => ({ 
+      return querySnapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data() 
       }));
-
-      return tutores;
     } catch (error) {
       console.error("Error al obtener el motor de tutores:", error);
       return [];
@@ -193,7 +191,7 @@ export class DatabaseService {
     }
   }
 
- async registrarNuevoEstudiante(datos: any) {
+  async registrarNuevoEstudiante(datos: any) {
     try {
       await this.cargarConfiguracionGlobal();
 
@@ -400,40 +398,98 @@ export class DatabaseService {
     return collectionData(horariosRef, { idField: 'id' });
   } 
 
-generarCodigoTutoria(materia: string): string {
-    // Reemplaza tildes por letras normales para un código limpio
+  generarCodigoTutoria(materia: string): string {
     const materiaLimpia = materia.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const siglas = materiaLimpia.substring(0, 3).toUpperCase();
     const numeros = Math.floor(1000 + Math.random() * 9000); 
     return `${siglas}-${numeros}`;
   }
 
+  // 🌟 PUNTO #18: Trazabilidad completa al agendar (fecha_agendamiento, fecha_modificacion_tutor, fecha_impartida)
   async agendarTutoria(datosReserva: any) {
     await this.cargarConfiguracionGlobal();
     const reservasRef = collection(this.firestore, 'Reservas');
-    
+    const ahoraISO = new Date().toISOString();
+
     const nuevaReserva = {
       ...datosReserva,
-      codigo: this.generarCodigoTutoria(datosReserva.materia),
-      estado: 'PENDIENTE', 
-      fecha_solicitud: new Date().toISOString(),
-      periodo: this.periodo_actual 
+      correoEstudiante: String(datosReserva.correoEstudiante || '').toLowerCase().trim(),
+      correoTutor: String(datosReserva.correoTutor || '').toLowerCase().trim(),
+      codigo: datosReserva.codigo || this.generarCodigoTutoria(datosReserva.materia),
+      estado: datosReserva.estado || 'PENDIENTE',
+      tipo_flujo: datosReserva.tipo_flujo || 'CONSULTA', // Soporta Punto #5 (CONSULTA vs PROCESO)
+      fecha_solicitud: ahoraISO,
+      fecha_agendamiento: datosReserva.fecha_agendamiento || ahoraISO,
+      fecha_modificacion_tutor: datosReserva.fecha_modificacion_tutor || null,
+      fecha_impartida: datosReserva.fecha_impartida || null,
+      periodo: this.periodo_actual
     };
 
+    const docRef = await addDoc(reservasRef, nuevaReserva);
+
     try {
-      await addDoc(collection(this.firestore, 'Tutorias_Agendadas'), nuevaReserva); 
-      
-      await this.crearNotificacion({
-        titulo: '¡Nueva Tutoría Agendada!',
-        mensaje: `${datosReserva.nombreEstudiante} ha agendado una tutoría de ${datosReserva.materia} el ${datosReserva.dia_elegido} a las ${datosReserva.hora_elegida}.`,
-        tipo: 'TUTORIA',
-        correo_destino: datosReserva.correoTutor 
-      });
-    } catch (error) {
-      throw error;
+      await addDoc(collection(this.firestore, 'Tutorias_Agendadas'), nuevaReserva);
+    } catch (e) {
+      console.warn('No se pudo respaldar en Tutorias_Agendadas:', e);
     }
-    
-    return addDoc(reservasRef, nuevaReserva);
+
+    return docRef;
+  }
+
+  // 🌟 PUNTOS #18, #6 y #11: Reprogramar fecha/hora desde el panel del tutor + traza + notificación
+  async reprogramarReservaTutor(
+    idReservaMaestra: string,
+    codigoTutoria: string,
+    nuevosDatos: {
+      dia_elegido: string;
+      hora_elegida: string;
+      fecha_exacta: string;
+      motivo?: string;
+    }
+  ) {
+    const ahoraISO = new Date().toISOString();
+    const actualizacion = {
+      dia_elegido: nuevosDatos.dia_elegido,
+      hora_elegida: nuevosDatos.hora_elegida,
+      fecha_exacta: nuevosDatos.fecha_exacta,
+      fecha_modificacion_tutor: ahoraISO,
+      estado: 'ACEPTADA'
+    };
+
+    // 1. Actualizamos todas las reservas asociadas al código (maestra + invitados) o solo la maestra si no hay código
+    let reservasAfectadas: any[] = [];
+    if (codigoTutoria && codigoTutoria !== 'SIN CÓDIGO') {
+      const qGrupo = query(collection(this.firestore, 'Reservas'), where('codigo', '==', codigoTutoria));
+      const snapGrupo = await getDocs(qGrupo);
+      const promesas = snapGrupo.docs.map(d => {
+        reservasAfectadas.push({ id: d.id, ...d.data() });
+        return updateDoc(doc(this.firestore, 'Reservas', d.id), actualizacion);
+      });
+      await Promise.all(promesas);
+    } else {
+      const refMaestra = doc(this.firestore, 'Reservas', idReservaMaestra);
+      const snapMaestra = await getDoc(refMaestra);
+      if (snapMaestra.exists()) {
+        reservasAfectadas.push({ id: snapMaestra.id, ...snapMaestra.data() });
+      }
+      await updateDoc(refMaestra, actualizacion);
+    }
+
+    // 2. Notificamos automáticamente a todos los estudiantes afectados (Punto #6 y #11)
+    const promesasNotif = reservasAfectadas.map(res => {
+      if (!res.correoEstudiante) return Promise.resolve();
+      const detalleMotivo = nuevosDatos.motivo ? ` Motivo: ${nuevosDatos.motivo}.` : '';
+      return this.crearNotificacion({
+        titulo: '📅 Tutoría Reprogramada',
+        mensaje: `El tutor ${res.nombreTutor || ''} reprogramó tu tutoría de ${res.materia} para el ${nuevosDatos.dia_elegido} (${nuevosDatos.fecha_exacta}) a las ${nuevosDatos.hora_elegida}.${detalleMotivo}`,
+        tipo: 'REPROGRAMACION',
+        correo_destino: res.correoEstudiante.toLowerCase().trim(),
+        rol_destino: 'ESTUDIANTE'
+      });
+    });
+
+    await Promise.all(promesasNotif);
+    return ahoraISO;
   }
   
   async obtenerMisTutorias(correo: string, rol: string) {
@@ -455,22 +511,89 @@ generarCodigoTutoria(materia: string): string {
   async obtenerRolUsuario(correo: string): Promise<string> {
     try {
       const correoID = correo.toLowerCase().trim();
-      
-      const qAdmin = query(collection(this.firestore, 'Administradores'), where('correo_google', '==', correoID));
-      const adminSnap = await getDocs(qAdmin);
-      if (!adminSnap.empty) return 'ADMIN';
 
-      const qTutor = query(collection(this.firestore, 'Tutores'), where('correo_google', '==', correoID));
-      const tutorSnap = await getDocs(qTutor);
-      if (!tutorSnap.empty) return 'TUTOR';
+      const adminDoc = await getDoc(doc(this.firestore, 'Administradores', correoID));
+      if (adminDoc.exists()) return 'ADMIN';
+
+      const qAdminGoogle = query(collection(this.firestore, 'Administradores'), where('correo_google', '==', correoID));
+      const snapAdminGoogle = await getDocs(qAdminGoogle);
+      if (!snapAdminGoogle.empty) return 'ADMIN';
+
+      const qAdminCorreo = query(collection(this.firestore, 'Administradores'), where('correo', '==', correoID));
+      const snapAdminCorreo = await getDocs(qAdminCorreo);
+      if (!snapAdminCorreo.empty) return 'ADMIN';
+
+      const tutorDoc = await getDoc(doc(this.firestore, 'Tutores', correoID));
+      if (tutorDoc.exists()) return 'TUTOR';
+
+      const qTutorGoogle = query(collection(this.firestore, 'Tutores'), where('correo_google', '==', correoID));
+      const snapTutorGoogle = await getDocs(qTutorGoogle);
+      if (!snapTutorGoogle.empty) return 'TUTOR';
+
+      const qTutorCorreo = query(collection(this.firestore, 'Tutores'), where('correo', '==', correoID));
+      const snapTutorCorreo = await getDocs(qTutorCorreo);
+      if (!snapTutorCorreo.empty) return 'TUTOR';
 
       return 'ESTUDIANTE';
     } catch (error) {
-      return 'ESTUDIANTE'; 
+      console.error('Error obteniendo rol:', error);
+      return 'ESTUDIANTE';
     }
   }
 
-  async unirseATutoriaPorCodigo(codigoIngresado: string, correoUsuario: string, nombreUsuario: string) {
+  async obtenerPermisosPaneles(correo: string): Promise<{ tienePanelTutor: boolean; tienePanelAdmin: boolean }> {
+    const rolGuardado = (localStorage.getItem('rol') || '').toUpperCase().trim();
+    let tienePanelAdmin = rolGuardado === 'ADMIN' || rolGuardado === 'COORDINADOR';
+    let tienePanelTutor = tienePanelAdmin || rolGuardado === 'TUTOR';
+
+    if (!correo) {
+      return { tienePanelTutor, tienePanelAdmin };
+    }
+
+    const correoLimpio = correo.toLowerCase().trim();
+
+    try {
+      const adminDoc = await getDoc(doc(this.firestore, 'Administradores', correoLimpio));
+      const snapAdmin = await getDocs(query(collection(this.firestore, 'Administradores'), where('correo', '==', correoLimpio)));
+      if (adminDoc.exists() || !snapAdmin.empty) {
+        tienePanelAdmin = true;
+        tienePanelTutor = true;
+      }
+
+      if (!tienePanelTutor) {
+        const tutorDoc = await getDoc(doc(this.firestore, 'Tutores', correoLimpio));
+        const snapTut = await getDocs(query(collection(this.firestore, 'Tutores'), where('correo', '==', correoLimpio)));
+        if (tutorDoc.exists() || !snapTut.empty) {
+          tienePanelTutor = true;
+        }
+      }
+
+      const estDoc = await getDoc(doc(this.firestore, 'Estudiantes', correoLimpio));
+      if (estDoc.exists()) {
+        const rolDB = String(estDoc.data()['rol'] || estDoc.data()['Rol'] || '').toUpperCase().trim();
+        if (rolDB === 'TUTOR') tienePanelTutor = true;
+        if (rolDB === 'COORDINADOR' || rolDB === 'ADMIN') {
+          tienePanelTutor = true;
+          tienePanelAdmin = true;
+        }
+      }
+
+      localStorage.setItem('tienePanelTutor', tienePanelTutor ? 'true' : 'false');
+      localStorage.setItem('tienePanelAdmin', tienePanelAdmin ? 'true' : 'false');
+    } catch (error) {
+      console.error('Error verificando permisos de paneles:', error);
+    }
+
+    return { tienePanelTutor, tienePanelAdmin };
+  }
+
+  async unirseATutoriaPorCodigo(
+    codigoIngresado: string,
+    correoUsuario: string,
+    nombreUsuario: string,
+    sedeEstudiante: string = '',
+    docenteEstudiante: string = ''
+  ) {
     try {
       const codigoLimpio = codigoIngresado.toUpperCase().trim();
       const correoLimpio = correoUsuario.toLowerCase().trim();
@@ -478,44 +601,108 @@ generarCodigoTutoria(materia: string): string {
       const qBusqueda = query(collection(this.firestore, 'Reservas'), where('codigo', '==', codigoLimpio));
       const snapshot = await getDocs(qBusqueda);
 
-      if (snapshot.empty) return { exito: false, mensaje: 'El código ingresado no existe o es incorrecto.' };
+      if (snapshot.empty) {
+        return { exito: false, mensaje: 'El código ingresado no existe o es incorrecto.' };
+      }
 
-      const tutoriaOriginal = snapshot.docs[0].data();
-      const yaEstaEnTutoria = snapshot.docs.some(doc => doc.data()['correoEstudiante'] === correoLimpio);
-      
-      if (yaEstaEnTutoria) return { exito: false, mensaje: 'Ya estás registrado en esta tutoría.' };
-      if (tutoriaOriginal['correoTutor'] === correoLimpio) return { exito: false, mensaje: 'No puedes unirte como estudiante a tu propia tutoría.' };
+      const docMaestro = snapshot.docs.find(d => !d.data()['esInvitado']) || snapshot.docs[0];
+      const tutoriaOriginal = docMaestro.data();
 
-      let celularAlumno = 'Desconocido';
+      const estadoOriginal = String(tutoriaOriginal['estado'] || '').toUpperCase().trim();
+      if (estadoOriginal === 'CANCELADA' || estadoOriginal === 'RECHAZADA') {
+        return { exito: false, mensaje: 'Esta tutoría ya fue cancelada o rechazada.' };
+      }
+
+      const yaEstaEnTutoria = snapshot.docs.some(
+        d => String(d.data()['correoEstudiante'] || '').toLowerCase().trim() === correoLimpio
+      );
+      if (yaEstaEnTutoria) {
+        return { exito: false, mensaje: 'Ya estás registrado en esta tutoría.' };
+      }
+
+      const correoTutorOriginal = String(tutoriaOriginal['correoTutor'] || '').toLowerCase().trim();
+      if (correoTutorOriginal === correoLimpio) {
+        return { exito: false, mensaje: 'No puedes unirte como estudiante a tu propia tutoría.' };
+      }
+
+      let celularAlumno = localStorage.getItem('celular') || 'Desconocido';
+      let codigoPaisAlumno = localStorage.getItem('codigo_pais') || '+593';
+      let sedeAlumno = (sedeEstudiante || localStorage.getItem('sede') || '').toUpperCase().trim();
+
       const estSnap = await getDoc(doc(this.firestore, 'Estudiantes', correoLimpio));
-      if (estSnap.exists() && estSnap.data()['celular']) {
-        celularAlumno = estSnap.data()['celular'];
+      if (estSnap.exists()) {
+        const estData = estSnap.data();
+        if (estData['celular']) celularAlumno = estData['celular'];
+        if (estData['codigo_pais']) codigoPaisAlumno = estData['codigo_pais'];
+        if (!sedeAlumno && estData['sede']) sedeAlumno = String(estData['sede']).toUpperCase().trim();
       } else {
         const tutSnap = await getDoc(doc(this.firestore, 'Tutores', correoLimpio));
-        if (tutSnap.exists() && tutSnap.data()['celular']) {
-          celularAlumno = tutSnap.data()['celular'];
+        if (tutSnap.exists()) {
+          const tutData = tutSnap.data();
+          if (tutData['celular']) celularAlumno = tutData['celular'];
+          if (tutData['codigo_pais']) codigoPaisAlumno = tutData['codigo_pais'];
+          if (!sedeAlumno && tutData['sede']) sedeAlumno = String(tutData['sede']).toUpperCase().trim();
         }
       }
 
+      let sedeTutoria = String(tutoriaOriginal['sedeTutor'] || tutoriaOriginal['sede'] || '').toUpperCase().trim();
+      if (!sedeTutoria && correoTutorOriginal) {
+        const tutorDoc = await getDoc(doc(this.firestore, 'Tutores', correoTutorOriginal));
+        if (tutorDoc.exists() && tutorDoc.data()['sede']) {
+          sedeTutoria = String(tutorDoc.data()['sede']).toUpperCase().trim();
+        } else {
+          const qTutor = query(collection(this.firestore, 'Tutores'), where('correo', '==', correoTutorOriginal));
+          const snapTutor = await getDocs(qTutor);
+          if (!snapTutor.empty && snapTutor.docs[0].data()['sede']) {
+            sedeTutoria = String(snapTutor.docs[0].data()['sede']).toUpperCase().trim();
+          }
+        }
+      }
+
+      const modalidadTutoria = String(tutoriaOriginal['modalidad'] || 'PRESENCIAL').toUpperCase().trim();
+
+      if (modalidadTutoria === 'PRESENCIAL' && sedeTutoria && sedeAlumno && sedeTutoria !== sedeAlumno) {
+        return {
+          exito: false,
+          mensaje: `No puedes unirte: esta tutoría es PRESENCIAL en la sede ${sedeTutoria} y tu sede registrada es ${sedeAlumno}.`
+        };
+      }
+
+      const ahoraISO = new Date().toISOString();
       const nuevaReserva = {
         correoEstudiante: correoLimpio,
         nombreEstudiante: nombreUsuario,
         celularEstudiante: celularAlumno,
+        codigoPaisEstudiante: codigoPaisAlumno,
         correoTutor: tutoriaOriginal['correoTutor'],
         nombreTutor: tutoriaOriginal['nombreTutor'],
         celularTutor: tutoriaOriginal['celularTutor'],
+        codigoPaisTutor: tutoriaOriginal['codigoPaisTutor'] || '+593',
         materia: tutoriaOriginal['materia'],
         dia_elegido: tutoriaOriginal['dia_elegido'],
         hora_elegida: tutoriaOriginal['hora_elegida'],
-        codigo: codigoLimpio, 
-        estado: tutoriaOriginal['estado'], 
-        fecha_solicitud: new Date().toISOString(),
-        periodo: tutoriaOriginal['periodo'] || this.periodo_actual 
+        duracion_horas: tutoriaOriginal['duracion_horas'] || 1,
+        fecha_exacta: tutoriaOriginal['fecha_exacta'] || '',
+        modalidad: tutoriaOriginal['modalidad'] || 'PRESENCIAL',
+        sedeTutor: sedeTutoria,
+        tipo_tutoria: tutoriaOriginal['tipo_tutoria'] || 'GRUPAL',
+        tipo_derivacion: tutoriaOriginal['tipo_derivacion'] || 'DECISIÓN PROPIA',
+        docente: docenteEstudiante || tutoriaOriginal['docente'] || 'No especificado',
+        codigo: codigoLimpio,
+        estado: tutoriaOriginal['estado'],
+        tipo_flujo: tutoriaOriginal['tipo_flujo'] || 'CONSULTA',
+        esInvitado: true,
+        fecha_solicitud: ahoraISO,
+        fecha_agendamiento: tutoriaOriginal['fecha_agendamiento'] || tutoriaOriginal['fecha_solicitud'] || ahoraISO,
+        fecha_modificacion_tutor: tutoriaOriginal['fecha_modificacion_tutor'] || null,
+        fecha_impartida: null,
+        periodo: tutoriaOriginal['periodo'] || this.periodo_actual
       };
 
       await addDoc(collection(this.firestore, 'Reservas'), nuevaReserva);
       return { exito: true, mensaje: `¡Te has unido a la tutoría de ${tutoriaOriginal['materia']} con éxito!` };
     } catch (error) {
+      console.error('Error al unirse por código:', error);
       return { exito: false, mensaje: 'Ocurrió un error en el servidor.' };
     }
   }
@@ -550,7 +737,7 @@ generarCodigoTutoria(materia: string): string {
         titulo: datos.titulo,
         mensaje: datos.mensaje,
         tipo: datos.tipo,
-        correo_destino: datos.correo_destino,
+        correo_destino: String(datos.correo_destino || '').toLowerCase().trim(),
         sede_destino: datos.sede_destino || 'GLOBAL',
         rol_destino: datos.rol_destino || 'ESTUDIANTE', 
         fecha: new Date().toISOString(),
@@ -563,9 +750,10 @@ generarCodigoTutoria(materia: string): string {
 
   async obtenerNotificacionesUsuario(correo: string, rol: string, sede: string, contextoPanel: string = 'ESTUDIANTE') {
     try {
+      const correoLimpio = String(correo || '').toLowerCase().trim();
       const q = query(
         collection(this.firestore, 'Notificaciones'),
-        where('correo_destino', '==', correo),
+        where('correo_destino', '==', correoLimpio),
         where('rol_destino', '==', contextoPanel)
       );
       
@@ -583,6 +771,7 @@ generarCodigoTutoria(materia: string): string {
 
   async marcarNotificacionLeida(idNotificacion: string, correoUsuario: string) {
     try {
+      const correoLimpio = String(correoUsuario || '').toLowerCase().trim();
       const notifRef = doc(this.firestore, 'Notificaciones', idNotificacion);
       const notifSnap = await getDoc(notifRef);
 
@@ -590,12 +779,47 @@ generarCodigoTutoria(materia: string): string {
         const datos = notifSnap.data();
         const leidaPor: string[] = datos['leida_por'] || [];
 
-        if (!leidaPor.includes(correoUsuario)) {
-          leidaPor.push(correoUsuario);
+        if (!leidaPor.includes(correoLimpio)) {
+          leidaPor.push(correoLimpio);
           await updateDoc(notifRef, { leida_por: leidaPor });
         }
       }
     } catch (error) {}
+  }
+
+  // 🌟 PUNTO #11: Marcado masivo de todas las notificaciones como leídas en un solo batch
+  async marcarTodasComoLeidas(correoUsuario: string, contextoPanel: string = 'ESTUDIANTE'): Promise<number> {
+    try {
+      const correoLimpio = String(correoUsuario || '').toLowerCase().trim();
+      const q = query(
+        collection(this.firestore, 'Notificaciones'),
+        where('correo_destino', '==', correoLimpio),
+        where('rol_destino', '==', contextoPanel)
+      );
+
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return 0;
+
+      const batch = writeBatch(this.firestore);
+      let actualizadas = 0;
+
+      snapshot.docs.forEach(docSnap => {
+        const datos = docSnap.data();
+        const leidaPor: string[] = datos['leida_por'] || [];
+        if (!leidaPor.includes(correoLimpio)) {
+          batch.update(docSnap.ref, { leida_por: [...leidaPor, correoLimpio] });
+          actualizadas++;
+        }
+      });
+
+      if (actualizadas > 0) {
+        await batch.commit();
+      }
+      return actualizadas;
+    } catch (error) {
+      console.error('Error en marcarTodasComoLeidas:', error);
+      return 0;
+    }
   }
 
   async obtenerEstudiantesPorCarrera(carrera: string) {
@@ -608,9 +832,11 @@ generarCodigoTutoria(materia: string): string {
     }
   }
 
+  // 🌟 PUNTO #18: Propaga fecha_agendamiento, fecha_modificacion_tutor y registra fecha_impartida
   async guardarAsistencia(datosAsistencia: any) {
     try {
       await this.cargarConfiguracionGlobal();
+      const ahoraISO = new Date().toISOString();
 
       let nombreLimpio = 'ESTUDIANTE_DESCONOCIDO';
       if (datosAsistencia.estudiante_info) {
@@ -621,7 +847,14 @@ generarCodigoTutoria(materia: string): string {
       const idUnico = `${nombreLimpio}_${new Date().getTime()}`;
       const nuevaRef = doc(this.firestore, 'Asistencias', idUnico);
       
-      const asistenciaFinal = { ...datosAsistencia, periodo: this.periodo_actual };
+      const asistenciaFinal = {
+        ...datosAsistencia,
+        fecha_agendamiento: datosAsistencia.fecha_agendamiento || datosAsistencia.fecha_solicitud || ahoraISO,
+        fecha_modificacion_tutor: datosAsistencia.fecha_modificacion_tutor || null,
+        fecha_impartida: datosAsistencia.fecha_impartida || ahoraISO,
+        fecha_registro: datosAsistencia.fecha_registro || ahoraISO,
+        periodo: this.periodo_actual
+      };
       await setDoc(nuevaRef, asistenciaFinal);
 
       const payloadExcel = {
@@ -643,14 +876,12 @@ generarCodigoTutoria(materia: string): string {
     }
   }
 
-  // 🌟 FUNCIÓN CORREGIDA: AHORA RECIBE EL PARÁMETRO DE SEDE
   async obtenerDocentesDesdeExcel(sedeFiltro: string = 'GLOBAL'): Promise<string[]> {
     try {
       await this.cargarConfiguracionGlobal();
       if (!this.scriptURL_dinamica) return [];
 
       let urlLimpia = this.scriptURL_dinamica.split('?')[0];
-      // 🌟 Añadimos la sede a la URL para que el script la lea
       const url = `${urlLimpia}?api=true&sede=${sedeFiltro}`;
       
       const response = await fetch(url);
@@ -688,7 +919,7 @@ generarCodigoTutoria(materia: string): string {
       throw error;
     }
   }
-  // 🌟 NUEVA FUNCIÓN PARA ENVIAR LA EVALUACIÓN DEL ESTUDIANTE AL EXCEL
+
   async guardarEvaluacionEstudiante(payloadExcel: any) {
     try {
       await fetch(this.scriptURL_dinamica, {

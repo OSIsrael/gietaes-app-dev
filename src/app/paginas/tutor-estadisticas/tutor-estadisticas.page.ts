@@ -4,18 +4,20 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { 
   IonContent, IonHeader, IonToolbar, IonIcon, IonButton, IonButtons,
-  NavController, IonGrid, IonRow, IonCol, IonSelect, IonSelectOption,
+  NavController, IonSelect, IonSelectOption,
   IonSpinner, ToastController, AlertController,
-  IonSegment, IonSegmentButton, IonLabel, IonPopover, IonList, IonItem 
+  IonLabel, IonPopover, IonList, IonItem 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   personCircleOutline, mailOutline, businessOutline, schoolOutline,
   bookOutline, logOutOutline, peopleOutline, notificationsOutline, 
   barChartOutline, personOutline, settingsOutline, addCircleOutline,
-  closeOutline, checkmarkOutline, warningOutline, timeOutline, chevronDownOutline, shieldCheckmarkOutline, briefcaseOutline } from 'ionicons/icons';
+  closeOutline, checkmarkOutline, warningOutline, timeOutline, 
+  chevronDownOutline, shieldCheckmarkOutline, briefcaseOutline, calendarOutline
+} from 'ionicons/icons';
 import { Auth, signOut } from '@angular/fire/auth';
-import { Firestore, collection, query, where, getDocs, addDoc, doc, updateDoc, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, getDocs, addDoc, doc, getDoc } from '@angular/fire/firestore';
 import { DatabaseService } from '../../services/database';
 import Chart from 'chart.js/auto';
 
@@ -26,9 +28,9 @@ import Chart from 'chart.js/auto';
   standalone: true,
   imports: [
     IonContent, IonHeader, IonToolbar, CommonModule, FormsModule,
-    IonButtons, IonButton, IonIcon, IonGrid, IonRow, IonCol,
+    IonButtons, IonButton, IonIcon,
     IonSelect, IonSelectOption, IonSpinner,
-    IonSegment, IonSegmentButton, IonLabel, IonPopover, IonList, IonItem
+    IonLabel, IonPopover, IonList, IonItem
   ]
 })
 export class TutorEstadisticasPage implements OnInit {
@@ -53,13 +55,16 @@ export class TutorEstadisticasPage implements OnInit {
   hayNotificacionesSinLeer: boolean = false;
 
   totalClasesDadas: number = 0;
+  totalHorasImpartidas: number = 0;
   totalAlumnosAtendidos: number = 0;
   
   @ViewChild('barCanvas', { static: false }) private barCanvas!: ElementRef;
   graficoBarras: any;
 
-  filtroPeriodo: string = 'ACTUAL';
+  // 🌟 PUNTO #16: Selector de período académico e histórico
+  filtroPeriodo: string = '';
   periodoActualApp: string = '';
+  listaPeriodos: string[] = [];
 
   mostrarModalMaterias: boolean = false;
   cargandoMaterias: boolean = false;
@@ -69,12 +74,11 @@ export class TutorEstadisticasPage implements OnInit {
   
   mostrarModalHorarios: boolean = false;
   guardandoHorario: boolean = false;
-  diassemana = ['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
-  franjasHorarias = ['07:00 - 09:00','09:00 - 11:00','11:00 - 13:00','14:00 - 16:00','16:00 - 18:00','18:00 - 20:00','20:00 - 22:00'];  
+  diassemana = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+  franjasHorarias = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00', '20:00 - 22:00'];  
   horarioSeleccionado: { [key: string]: string } = {}; 
   modalidadGlobal: string = 'PRESENCIAL';
 
-  // 🌟 VARIABLES PARA CABECERA DINÁMICA
   menuRolAbierto: boolean = false;
   eventoRol: any = null;
   menuPerfilAbierto: boolean = false;
@@ -82,7 +86,6 @@ export class TutorEstadisticasPage implements OnInit {
   tienePanelTutor: boolean = false;
   tienePanelAdmin: boolean = false;
 
-  // 🌟 GETTERS DE DISEÑO
   get iconoRolActual(): string {
     if (this.rolUsuario === 'ADMIN' || this.rolUsuario === 'COORDINADOR') return 'shield-checkmark-outline';
     if (this.rolUsuario === 'TUTOR') return 'briefcase-outline';
@@ -96,7 +99,13 @@ export class TutorEstadisticasPage implements OnInit {
   }
 
   constructor() {
-    addIcons({notificationsOutline,personCircleOutline,mailOutline,businessOutline,barChartOutline,addCircleOutline,personOutline,logOutOutline,settingsOutline,bookOutline,warningOutline,peopleOutline,schoolOutline,closeOutline,checkmarkOutline,timeOutline, chevronDownOutline, shieldCheckmarkOutline, briefcaseOutline});
+    addIcons({
+      notificationsOutline, personCircleOutline, mailOutline, businessOutline, 
+      barChartOutline, addCircleOutline, personOutline, logOutOutline, 
+      settingsOutline, bookOutline, warningOutline, peopleOutline, schoolOutline, 
+      closeOutline, checkmarkOutline, timeOutline, chevronDownOutline, 
+      shieldCheckmarkOutline, briefcaseOutline, calendarOutline
+    });
   }
 
   ngOnInit() {}
@@ -104,8 +113,11 @@ export class TutorEstadisticasPage implements OnInit {
   async ionViewWillEnter() {
     this.menuAbierto = false;
     
-    await this.dbService.cargarConfiguracionGlobal();
-    this.periodoActualApp = this.dbService.periodo_actual;
+    await this.dbService.cargarConfiguracionGlobal(true);
+    this.periodoActualApp = String(this.dbService.periodo_actual || '').trim();
+    if (!this.filtroPeriodo) {
+      this.filtroPeriodo = this.periodoActualApp || 'HISTORICO';
+    }
 
     const correoGuardado = localStorage.getItem('correo');
     if (!correoGuardado) {
@@ -129,36 +141,20 @@ export class TutorEstadisticasPage implements OnInit {
     const cicloStr = localStorage.getItem('ciclo') || '1';
     this.cicloUsuario = parseInt(cicloStr.replace(/\D/g, ''), 10) || 1;
 
-    // 🌟 CARGA DE NOTIFICACIONES Y PERMISOS DE PANELES
     await this.verificarNotificaciones(this.usuario.correo, this.rolUsuario, this.usuario.sede);
     await this.cargarPermisosPaneles(this.correoUsuario);
     
     setTimeout(() => { this.cargarEstadisticas(); }, 300);
   }
 
-  // ==========================================
-  // 🌟 MÉTODOS PARA MENÚS DE CABECERA
-  // ==========================================
   async cargarPermisosPaneles(correo: string) {
     this.tienePanelTutor = false;
     this.tienePanelAdmin = false;
     if (!correo) return;
     try {
-      const qEst = query(collection(this.firestore, 'Estudiantes'), where('correo', '==', correo));
-      const snapEst = await getDocs(qEst);
-      if (!snapEst.empty) {
-        const rolDB = String(snapEst.docs[0].data()['rol'] || snapEst.docs[0].data()['Rol'] || '').toUpperCase().trim();
-        if (rolDB === 'TUTOR') this.tienePanelTutor = true;
-        if (rolDB === 'COORDINADOR' || rolDB === 'ADMIN') {
-          this.tienePanelTutor = true;
-          this.tienePanelAdmin = true;
-        }
-      }
-      if (!this.tienePanelTutor) {
-        const qTut = query(collection(this.firestore, 'Tutores'), where('correo', '==', correo));
-        const snapTut = await getDocs(qTut);
-        if (!snapTut.empty) this.tienePanelTutor = true;
-      }
+      const permisos = await this.dbService.obtenerPermisosPaneles(correo);
+      this.tienePanelTutor = permisos.tienePanelTutor;
+      this.tienePanelAdmin = permisos.tienePanelAdmin;
     } catch (error) { console.error("Error permisos:", error); }
     if (this.cdr) this.cdr.detectChanges(); 
   }
@@ -174,7 +170,7 @@ export class TutorEstadisticasPage implements OnInit {
 
   irAPerfil() {
     this.menuPerfilAbierto = false;
-    this.router.navigate(['/tabs/perfil']); 
+    this.router.navigate(['/tabs-tutor/perfil']); 
   }
 
   async cerrarSesion() {
@@ -189,9 +185,6 @@ export class TutorEstadisticasPage implements OnInit {
     }
   }
 
-  // ==========================================
-  // OTRAS FUNCIONES Y GRÁFICAS
-  // ==========================================
   async verificarNotificaciones(correo: string, rol: string, sede: string) {
     try {
       const notifs = await this.dbService.obtenerNotificacionesUsuario(correo, rol, sede, 'TUTOR');
@@ -207,34 +200,59 @@ export class TutorEstadisticasPage implements OnInit {
   toggleMenu() { this.menuAbierto = !this.menuAbierto; }
   irAPanelEstudiante() { this.router.navigate(['/tabs/perfil']); }
 
+  // ==========================================================================
+  // 🌟 PUNTO #16: ESTADÍSTICAS DEL TUTOR FILTRADAS POR PERÍODO / HISTÓRICO
+  // ==========================================================================
   async cargarEstadisticas() {
     try {
-      const qClases = query(collection(this.firestore, 'Asistencias'), where('correoTutor', '==', this.usuario.correo.toLowerCase()));
+      const qClases = query(collection(this.firestore, 'Asistencias'), where('correoTutor', '==', this.usuario.correo.toLowerCase().trim()));
       const clasesSnap = await getDocs(qClases);
       
-      let asistencias = clasesSnap.docs.map(doc => doc.data());
+      const periodosSet = new Set<string>();
+      if (this.periodoActualApp) periodosSet.add(this.periodoActualApp);
 
-      if (this.filtroPeriodo === 'ACTUAL') {
-        asistencias = asistencias.filter(data => data['periodo'] === this.periodoActualApp);
+      const todasAsistencias = clasesSnap.docs.map(docSnap => {
+        const data = docSnap.data();
+        const per = String(data['periodo'] || this.periodoActualApp || '').trim();
+        if (per) periodosSet.add(per);
+        return { ...data, _periodoLimpio: per };
+      });
+
+      this.listaPeriodos = Array.from(periodosSet).filter(Boolean).sort().reverse();
+      if (!this.filtroPeriodo) {
+        this.filtroPeriodo = this.periodoActualApp || 'HISTORICO';
       }
+
+      const asistencias = this.filtroPeriodo === 'HISTORICO'
+        ? todasAsistencias
+        : todasAsistencias.filter(data => data._periodoLimpio === this.filtroPeriodo);
 
       this.totalClasesDadas = asistencias.length;
       const alumnosUnicos = new Set();
       const conteoMaterias: { [key: string]: number } = {};
+      let minutosTotales = 0;
 
-      asistencias.forEach(data => {
-        if (data['estudiante_info']) alumnosUnicos.add(data['estudiante_info']);
+      asistencias.forEach((data: any) => {
+        const idAlumno = data['correo_estudiante'] || data['estudiante_info'];
+        if (idAlumno) alumnosUnicos.add(String(idAlumno).toLowerCase().trim());
+
         const materia = data['materia'] || 'Otra';
         conteoMaterias[materia] = (conteoMaterias[materia] || 0) + 1;
+
+        const hrs = Number(data['horas_duracion'] || 0);
+        const mins = Number(data['minutos_duracion'] || 0);
+        minutosTotales += (hrs * 60) + mins;
       });
 
       this.totalAlumnosAtendidos = alumnosUnicos.size;
+      this.totalHorasImpartidas = Math.round((minutosTotales / 60) * 10) / 10;
 
       if (Object.keys(conteoMaterias).length > 0) {
-        this.generarGrafico(conteoMaterias);
+        setTimeout(() => this.generarGrafico(conteoMaterias), 50);
       } else {
         if (this.graficoBarras) this.graficoBarras.destroy(); 
       }
+      if (this.cdr) this.cdr.detectChanges();
     } catch (error) {
       console.error("Error al cargar estadísticas:", error);
     }
@@ -242,6 +260,7 @@ export class TutorEstadisticasPage implements OnInit {
 
   generarGrafico(datos: any) {
     if (this.graficoBarras) this.graficoBarras.destroy();
+    if (!this.barCanvas || !this.barCanvas.nativeElement) return;
     const labels = Object.keys(datos);
     const data = Object.values(datos);
 
@@ -279,7 +298,7 @@ export class TutorEstadisticasPage implements OnInit {
         const docSnap = await getDoc(doc(this.firestore, 'Tutores', idTutor));
         if (docSnap.exists()) {
           const dataTutor = docSnap.data();
-          materiasQueYaTiene = (dataTutor['materias'] || []).map((m:string) => m.toUpperCase());
+          materiasQueYaTiene = (dataTutor['materias'] || []).map((m: string) => m.toUpperCase());
           this.horariosActualesTutor = dataTutor['horarios'] || { "Aviso": "Mantiene horario registrado" };
         }
       }
@@ -302,7 +321,7 @@ export class TutorEstadisticasPage implements OnInit {
 
   async enviarSolicitudMaterias() {
     if (this.materiasSeleccionadas.length === 0) {
-      this.mostrarAviso("Selecciona al menos una materia para solicitar.",'advertencia');
+      this.mostrarAviso("Selecciona al menos una materia para solicitar.", 'advertencia');
       return;
     }
 
@@ -334,17 +353,16 @@ export class TutorEstadisticasPage implements OnInit {
         });
       }
 
-      this.mostrarAviso("Solicitud enviada correctamente. El administrador la revisará pronto.",'exito');
+      this.mostrarAviso("Solicitud enviada correctamente. El administrador la revisará pronto.", 'exito');
       this.mostrarModalMaterias = false;
 
     } catch (error) {
-      this.mostrarAviso("Error al enviar la solicitud.",'error');
+      this.mostrarAviso("Error al enviar la solicitud.", 'error');
     } finally {
       this.cargandoMaterias = false;
     }
   }
 
-  // 🌟 BUSCADOR INFALIBLE PARA TUTORES ACTIVOS
   async obtenerDocIdTutor(): Promise<string | null> {
     const correo = this.usuario.correo.toLowerCase().trim();
     
@@ -378,7 +396,7 @@ export class TutorEstadisticasPage implements OnInit {
         const docSnap = await getDoc(doc(this.firestore, 'Tutores', idTutor));
         if (docSnap.exists()) {
           const horariosDb = docSnap.data()['horarios'] || {};
-          for(let k in horariosDb) {
+          for (let k in horariosDb) {
             let nuevaClave = k.replace('7:00', '07:00').replace('9:00', '09:00');
             this.horarioSeleccionado[nuevaClave] = horariosDb[k];
           }
@@ -426,7 +444,8 @@ export class TutorEstadisticasPage implements OnInit {
     
     this.horarioSeleccionado = { ...this.horarioSeleccionado };
   }
-async guardarNuevoHorario() {
+
+  async guardarNuevoHorario() {
     if (Object.keys(this.horarioSeleccionado).length === 0) {
       this.mostrarAviso('Por favor, selecciona al menos un bloque de horario.', 'advertencia');
       return;
@@ -446,7 +465,6 @@ async guardarNuevoHorario() {
 
       const correo = this.usuario.correo.toLowerCase().trim();
       
-      // 🌟 BUSCAMOS AL TUTOR PARA OBTENER SUS MATERIAS ACTUALES
       const q = query(collection(this.firestore, 'Tutores'), where('correo', '==', correo), where('estado', '==', 'ACTIVO'));
       const snaps = await getDocs(q);
       
@@ -456,7 +474,6 @@ async guardarNuevoHorario() {
         materiasDelTutor = Array.isArray(datosTutor['materias']) ? datosTutor['materias'].join(', ') : (datosTutor['materias'] || 'Sus materias actuales');
       }
 
-      // 🌟 CREAMOS UNA POSTULACIÓN DE "MODIFICACIÓN DE HORARIO"
       const payload = {
         correo: correo,
         nombre: this.usuario.nombre,
@@ -464,17 +481,15 @@ async guardarNuevoHorario() {
         carrera: this.carreraUsuario,
         ciclo: this.cicloUsuario,
         celular: this.celularUsuario,
-        permanencia: 'TUTOR ACTIVO (MODIFICA HORARIO)', // Indicador para Coordinación
-        materia_postulada: materiasDelTutor, // Enviamos sus materias actuales como referencia
-        disponibilidad_horaria: horarioLimpio, // El nuevo horario propuesto
+        permanencia: 'TUTOR ACTIVO (MODIFICA HORARIO)',
+        materia_postulada: materiasDelTutor,
+        disponibilidad_horaria: horarioLimpio,
         estado_aprobacion: 'PENDIENTE',
         fecha_postulacion: new Date().toISOString()
       };
 
-      // Guardamos la solicitud en Postulaciones
       await addDoc(collection(this.firestore, 'Postulaciones'), payload);
 
-      // Notificamos a Coordinación
       await this.dbService.crearNotificacion({
         titulo: 'Modificación de Horario Solicitada',
         mensaje: `${this.usuario.nombre} ha solicitado actualizar su horario de tutorías.`,

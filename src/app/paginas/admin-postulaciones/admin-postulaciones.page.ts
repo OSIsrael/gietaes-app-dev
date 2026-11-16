@@ -1,18 +1,24 @@
-import { Component, inject, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { Firestore, collection, query, where, getDocs, addDoc, doc, deleteDoc, updateDoc } from '@angular/fire/firestore';
 import { DatabaseService } from '../../services/database';
 import { CommonModule, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Auth, signOut } from '@angular/fire/auth'; // 🌟 AÑADIDO
+import { Auth, signOut } from '@angular/fire/auth';
 import {
   IonContent, IonHeader, IonToolbar, IonButton, IonButtons, IonIcon,
   IonInput, IonTextarea, IonSelect, IonSelectOption,
   IonDatetime, IonDatetimeButton, IonModal, ToastController, AlertController, IonLabel, IonList, IonItem, IonSpinner, IonPopover 
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, megaphoneOutline, checkmarkCircleOutline, closeCircleOutline, personOutline, timeOutline, bookOutline, personCircleOutline, documentTextOutline, filterOutline, locationOutline, callOutline, pieChartOutline, mailOutline, closeOutline, checkmarkOutline, chevronDownOutline, chevronUpOutline, warning, calendarOutline, logoWhatsapp, buildOutline, sadOutline, shieldCheckmarkOutline, briefcaseOutline, schoolOutline, settingsOutline, logOutOutline, notificationsOutline } from 'ionicons/icons';
-import Chart from 'chart.js/auto';
+import { 
+  arrowBackOutline, megaphoneOutline, checkmarkCircleOutline, closeCircleOutline, 
+  personOutline, timeOutline, bookOutline, personCircleOutline, documentTextOutline, 
+  filterOutline, locationOutline, callOutline, mailOutline, closeOutline, 
+  checkmarkOutline, chevronDownOutline, chevronUpOutline, warning, calendarOutline, 
+  logoWhatsapp, buildOutline, sadOutline, shieldCheckmarkOutline, briefcaseOutline, 
+  schoolOutline, settingsOutline, logOutOutline, notificationsOutline, peopleOutline, createOutline 
+} from 'ionicons/icons';
 
 @Component({
   selector: 'app-admin-postulaciones',
@@ -30,7 +36,7 @@ export class AdminPostulacionesPage {
   private firestore = inject(Firestore);
   private dbService = inject(DatabaseService);
   private router = inject(Router);
-  private auth = inject(Auth); // 🌟 AÑADIDO
+  private auth = inject(Auth);
   private cdr = inject(ChangeDetectorRef);
 
   private toastController = inject(ToastController);
@@ -39,8 +45,30 @@ export class AdminPostulacionesPage {
   postulacionesAgrupadas: any[] = [];
   
   sedeAdmin: string = ''; 
+
+  // 🌟 FILTROS DE BANDEJA (SEDE + PERÍODO + CARRERA)
   filtroSedePostulaciones: string = 'GLOBAL';
-  filtroSedeGraficas: string = 'GLOBAL'; 
+  filtroPeriodoPostulaciones: string = 'TODOS';
+  filtroCarreraPostulaciones: string = 'TODAS';
+
+  // 🌟 FILTROS DE MÉTRICAS NUMÉRICAS (PUNTOS #15 y #16)
+  filtroSedeGraficas: string = 'GLOBAL';
+  filtroPeriodoMetricas: string = 'TODOS';
+  filtroCarreraMetricas: string = 'TODAS';
+
+  listaPeriodos: string[] = [];
+  listaCarreras: string[] = [];
+
+  metricasAdmin = {
+    totalTutores: 0,
+    tutoresActivos: 0,
+    porcentajeActivos: 0,
+    tutoriasImpartidas: 0,
+    horasImpartidas: 0,
+    estudiantesUnicos: 0,
+    postulacionesPendientes: 0
+  };
+  desglosePorCarrera: { carrera: string; tutoresActivos: number; tutoriasImpartidas: number }[] = [];
   
   tutoriasEnAlerta: any[] = [];
   mostrarModalReasignacion: boolean = false;
@@ -48,12 +76,6 @@ export class AdminPostulacionesPage {
   tutoriaAReasignar: any = null;
   tutoresSugeridos: any[] = [];
 
-  @ViewChild('barCanvas', { static: false }) private barCanvas!: ElementRef;
-  @ViewChild('pieCanvas', { static: false }) private pieCanvas!: ElementRef;
-  graficoBarras: any;
-  graficoPastel: any;
-
-  // 🌟 VARIABLES PARA LA CABECERA DINÁMICA
   rolUsuario: string = '';
   sedeUsuario: string = '';
   nombreUsuario: string = '';
@@ -67,9 +89,7 @@ export class AdminPostulacionesPage {
   tienePanelAdmin: boolean = false;
   hayNotificacionesSinLeer: boolean = false;
 
-  
-
-  enviandoAnuncio: boolean = false; // 🌟 BLOQUEO DE MULTI-ENVÍO
+  enviandoAnuncio: boolean = false;
 
   nuevoAnuncio = {
     titulo: '',
@@ -78,7 +98,6 @@ export class AdminPostulacionesPage {
     sede_destino: 'GLOBAL',
   };
 
-  // 🌟 GETTERS DE DISEÑO
   get iconoRolActual(): string {
     if (this.rolUsuario === 'ADMIN' || this.rolUsuario === 'COORDINADOR') return 'shield-checkmark-outline';
     if (this.rolUsuario === 'TUTOR') return 'briefcase-outline';
@@ -90,7 +109,7 @@ export class AdminPostulacionesPage {
     if (this.rolUsuario === 'TUTOR') return 'TUTOR';
     return 'ESTUDIANTE';
   }
-  // 🌟 VARIABLES PARA EDITAR HORARIO
+
   mostrarModalEditarHorario: boolean = false;
   estudianteEditando: any = null;
   horarioTemporalAdmin: any = {};
@@ -98,7 +117,6 @@ export class AdminPostulacionesPage {
   diassemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   franjasHorarias = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00', '20:00 - 22:00'];
 
-  // 🌟 FUNCIONES PARA EDITAR HORARIO
   abrirModalEditarHorario(estudiante: any) {
     this.estudianteEditando = estudiante;
     this.horarioTemporalAdmin = { ...estudiante.horarios }; 
@@ -120,10 +138,7 @@ export class AdminPostulacionesPage {
 
   guardarHorarioEditado() {
     if (this.estudianteEditando) {
-      // 1. Actualiza visualmente en la tarjeta
       this.estudianteEditando.horarios = { ...this.horarioTemporalAdmin };
-      
-      // 2. Inyecta este horario en las postulaciones para que la función ACEPTAR lo tome
       this.estudianteEditando.materias_postuladas.forEach((postulacion: any) => {
         postulacion.horarios = { ...this.horarioTemporalAdmin };
       });
@@ -133,7 +148,15 @@ export class AdminPostulacionesPage {
   }
 
   constructor() {
-    addIcons({arrowBackOutline, personCircleOutline, filterOutline, checkmarkCircleOutline, personOutline, locationOutline, callOutline, mailOutline, documentTextOutline, timeOutline, bookOutline, closeOutline, checkmarkOutline, chevronDownOutline, chevronUpOutline, warning, calendarOutline, logoWhatsapp, buildOutline, sadOutline, pieChartOutline, megaphoneOutline, closeCircleOutline, shieldCheckmarkOutline, briefcaseOutline, schoolOutline, settingsOutline, logOutOutline, notificationsOutline});
+    addIcons({
+      arrowBackOutline, personCircleOutline, filterOutline, checkmarkCircleOutline, 
+      personOutline, locationOutline, callOutline, mailOutline, documentTextOutline, 
+      timeOutline, bookOutline, closeOutline, checkmarkOutline, chevronDownOutline, 
+      chevronUpOutline, warning, calendarOutline, logoWhatsapp, buildOutline, 
+      sadOutline, megaphoneOutline, closeCircleOutline, shieldCheckmarkOutline, 
+      briefcaseOutline, schoolOutline, settingsOutline, logOutOutline, 
+      notificationsOutline, peopleOutline, createOutline
+    });
   }
 
   async ionViewWillEnter() {
@@ -154,41 +177,70 @@ export class AdminPostulacionesPage {
       return;
     }
 
+    await this.dbService.cargarConfiguracionGlobal(true);
+    if (this.dbService.periodo_actual) {
+      this.filtroPeriodoMetricas = this.dbService.periodo_actual;
+    }
+
     await this.cargarPermisosPaneles(this.correoUsuario);
     await this.verificarNotificaciones(this.correoUsuario, this.rolUsuario, this.sedeUsuario);
 
+    await this.cargarOpcionesFiltros();
     await this.cargarPostulaciones();
+    await this.cargarEstadisticas();
     this.limpiarAnunciosExpirados();
     this.cargarTutoriasEnAlerta();
   }
 
-  ionViewDidEnter() {
-    this.cargarEstadisticas();
+  // 🌟 CARGA DINÁMICA DE PERÍODOS Y CARRERAS DISPONIBLES
+  async cargarOpcionesFiltros() {
+    const periodosSet = new Set<string>();
+    const carrerasSet = new Set<string>();
+
+    if (this.dbService.periodo_actual) {
+      periodosSet.add(String(this.dbService.periodo_actual).trim());
+    }
+
+    try {
+      const [snapTutores, snapAsistencias, snapPostulaciones] = await Promise.all([
+        getDocs(collection(this.firestore, 'Tutores')),
+        getDocs(collection(this.firestore, 'Asistencias')),
+        getDocs(collection(this.firestore, 'Postulaciones'))
+      ]);
+
+      snapTutores.forEach(d => {
+        const data = d.data();
+        if (data['carrera']) carrerasSet.add(String(data['carrera']).trim().toUpperCase());
+        if (data['ultimo_periodo_activo']) periodosSet.add(String(data['ultimo_periodo_activo']).trim());
+        if (data['periodo']) periodosSet.add(String(data['periodo']).trim());
+      });
+
+      snapAsistencias.forEach(d => {
+        const data = d.data();
+        if (data['periodo']) periodosSet.add(String(data['periodo']).trim());
+      });
+
+      snapPostulaciones.forEach(d => {
+        const data = d.data();
+        if (data['carrera']) carrerasSet.add(String(data['carrera']).trim().toUpperCase());
+        if (data['periodo']) periodosSet.add(String(data['periodo']).trim());
+      });
+
+      this.listaPeriodos = Array.from(periodosSet).filter(Boolean).sort().reverse();
+      this.listaCarreras = Array.from(carrerasSet).filter(Boolean).sort();
+    } catch (e) {
+      console.error('Error cargando opciones de filtros:', e);
+    }
   }
 
-  // ==========================================
-  // 🌟 MÉTODOS PARA MENÚS DE CABECERA
-  // ==========================================
   async cargarPermisosPaneles(correo: string) {
     this.tienePanelTutor = false;
     this.tienePanelAdmin = false;
     if (!correo) return;
     try {
-      const qEst = query(collection(this.firestore, 'Estudiantes'), where('correo', '==', correo));
-      const snapEst = await getDocs(qEst);
-      if (!snapEst.empty) {
-        const rolDB = String(snapEst.docs[0].data()['rol'] || snapEst.docs[0].data()['Rol'] || '').toUpperCase().trim();
-        if (rolDB === 'TUTOR') this.tienePanelTutor = true;
-        if (rolDB === 'COORDINADOR' || rolDB === 'ADMIN') {
-          this.tienePanelTutor = true;
-          this.tienePanelAdmin = true;
-        }
-      }
-      if (!this.tienePanelTutor) {
-        const qTut = query(collection(this.firestore, 'Tutores'), where('correo', '==', correo));
-        const snapTut = await getDocs(qTut);
-        if (!snapTut.empty) this.tienePanelTutor = true;
-      }
+      const permisos = await this.dbService.obtenerPermisosPaneles(correo);
+      this.tienePanelTutor = permisos.tienePanelTutor;
+      this.tienePanelAdmin = permisos.tienePanelAdmin;
     } catch (error) { console.error("Error permisos:", error); }
     if (this.cdr) this.cdr.detectChanges(); 
   }
@@ -232,7 +284,7 @@ export class AdminPostulacionesPage {
   }
 
   // ==========================================
-  // 🌟 ALERTAS SOS (CON FILTRO DE JURISDICCIÓN)
+  // ALERTAS SOS
   // ==========================================
   async cargarTutoriasEnAlerta() {
     try {
@@ -245,7 +297,6 @@ export class AdminPostulacionesPage {
       snapshot.forEach(documento => {
         const data = documento.data();
         const sedeReserva = String(data['sede'] || data['sedeEstudiante'] || '').toUpperCase();
-        
         const cumpleSede = esSuperAdmin || sedeReserva === this.sedeUsuario;
 
         if (cumpleSede) {
@@ -280,14 +331,11 @@ export class AdminPostulacionesPage {
             rol_destino: 'TUTOR' 
           });
         }
-      } catch (notiError) {
-        console.warn('La tutoría se reasignó, pero la notificación falló.', notiError);
-      }
+      } catch (notiError) {}
 
       this.mostrarAviso(`Tutoría reasignada exitosamente a ${tutor.nombre}.`, 'exito');
       this.mostrarModalReasignacion = false;
       this.cargarTutoriasEnAlerta(); 
-      
     } catch (error) {
       this.mostrarAviso('Error al intentar reasignar la tutoría.', 'error');
     }
@@ -313,50 +361,6 @@ export class AdminPostulacionesPage {
     if (celFormateado.startsWith('0')) celFormateado = '593' + celFormateado.substring(1);
     const mensaje = encodeURIComponent(`Hola ${nombre}, te escribimos de Coordinación de Tutorías. Hubo un inconveniente con el tutor asignado, pero ya te estamos buscando un reemplazo para tu tutoría.`);
     window.open(`https://wa.me/${celFormateado}?text=${mensaje}`, '_blank');
-  }
-
-  async resolverAlerta(tutoria: any) {
-    const alert = await this.alertController.create({
-      header: 'Gestión Manual de Tutoría',
-      message: `El sistema no encontró reemplazo para ${tutoria.materia}. Ingresa los datos del tutor que conseguiste manualmente, o da de baja la solicitud si no hubo solución.`,
-      cssClass: 'alerta-premium-gietaes',
-      inputs: [
-        { name: 'nombreNuevo', type: 'text', placeholder: 'Nombre del nuevo tutor' },
-        { name: 'correoNuevo', type: 'email', placeholder: 'Correo del nuevo tutor' }
-      ],
-      buttons: [
-        { text: 'Cancelar', role: 'cancel', cssClass: 'btn-alerta-cancelar' },
-        { 
-          text: 'Dar de Baja (Eliminar)', 
-          cssClass: 'btn-alerta-peligro',
-          handler: async () => {
-            await deleteDoc(doc(this.firestore, 'Reservas', tutoria.id));
-            this.mostrarAviso('La solicitud huérfana ha sido eliminada.', 'info');
-            this.cargarTutoriasEnAlerta();
-          }
-        },
-        { 
-          text: 'Reasignar Tutor', 
-          cssClass: 'btn-alerta-confirmar',
-          handler: async (data) => {
-            if (!data.nombreNuevo || !data.correoNuevo) {
-              this.mostrarAviso('Debes ingresar nombre y correo para reasignar.', 'advertencia');
-              return false;
-            }
-            await updateDoc(doc(this.firestore, 'Reservas', tutoria.id), {
-              estado: 'PENDIENTE',
-              nombreTutor: data.nombreNuevo.toUpperCase(),
-              correoTutor: data.correoNuevo.toLowerCase(),
-              notas_admin: 'Reasignado manualmente por Coordinación.'
-            });
-            this.mostrarAviso('¡Tutoría rescatada y reasignada con éxito!', 'exito');
-            this.cargarTutoriasEnAlerta();
-            return true;
-          }
-        }
-      ]
-    });
-    await alert.present();
   }
 
   async cargarPostulaciones() {
@@ -385,8 +389,12 @@ export class AdminPostulacionesPage {
       rawPostulaciones.forEach((post: any) => {
         const correo = post['correo'];
         const sedePost = String(post['sede'] || '').toUpperCase();
+        const carreraPost = String(post['carrera'] || '').trim().toUpperCase();
+        const periodoPost = String(post['periodo'] || this.dbService.periodo_actual || '').trim();
         
         if (!esSuperAdmin && sedePost !== this.sedeUsuario) return;
+        if (this.filtroCarreraPostulaciones !== 'TODAS' && carreraPost !== this.filtroCarreraPostulaciones) return;
+        if (this.filtroPeriodoPostulaciones !== 'TODOS' && periodoPost !== this.filtroPeriodoPostulaciones) return;
 
         if (!diccionarioEstudiantes[correo]) {
           diccionarioEstudiantes[correo] = {
@@ -408,7 +416,6 @@ export class AdminPostulacionesPage {
       });
 
       this.postulacionesAgrupadas = Object.values(diccionarioEstudiantes);
-
     } catch (error) {
       console.error('Error cargando postulaciones:', error);
     }
@@ -468,40 +475,30 @@ export class AdminPostulacionesPage {
     window.open(url, '_blank');
   }
 
-async aceptar(post: any) {
-    const confirmar = await this.confirmarAccion(`¿Estás seguro de APROBAR a ${post.nombre} para dictar ${post.materia_postulada}?`,'');
+  async aceptar(post: any) {
+    const confirmar = await this.confirmarAccion(`¿Estás seguro de APROBAR a ${post.nombre} para dictar ${post.materia_postulada}?`, '');
     if (!confirmar) return; 
 
     try {
-      // 1. Procesamos la aceptación en la Base de Datos
       await this.dbService.aceptarTutor(post.id, post);
       
-      // 🌟 NUEVO: Transferir los horarios propuestos al documento oficial del tutor
       try {
-        // Buscamos el documento del tutor recién aceptado/actualizado
         const qTutor = query(collection(this.firestore, 'Tutores'), where('correo', '==', post.correo));
         const snapTutor = await getDocs(qTutor);
         
         if (!snapTutor.empty) {
           const tutorId = snapTutor.docs[0].id;
-          
-          // Extraemos los horarios propuestos en la postulación (si existen)
           const horariosPropuestos = post.horarios || post.disponibilidad_horaria || {};
           
           if (Object.keys(horariosPropuestos).length > 0) {
-            // Actualizamos el documento del tutor con los nuevos horarios
             await updateDoc(doc(this.firestore, 'Tutores', tutorId), {
               horarios: horariosPropuestos,
-              estado_horario: 'APROBADO' // Marcador interno para saber que coordinación lo validó
+              estado_horario: 'APROBADO'
             });
-            console.log("Horarios propuestos transferidos con éxito al perfil oficial del tutor.");
           }
         }
-      } catch (errorHorarios) {
-        console.warn('Postulación aceptada, pero hubo un error al transferir los horarios:', errorHorarios);
-      }
+      } catch (errorHorarios) {}
       
-      // 2. 🌟 Enviamos la Notificación de ÉXITO al estudiante
       try {
         await this.dbService.crearNotificacion({
           titulo: '¡Postulación Aprobada! 🎉',
@@ -511,46 +508,42 @@ async aceptar(post: any) {
           sede_destino: post.sede,
           rol_destino: 'ESTUDIANTE' 
         });
-      } catch (e) {
-        console.warn('Postulación aceptada, pero falló la notificación', e);
-      }
+      } catch (e) {}
 
-      this.mostrarAviso(`Tutor aceptado en ${post.materia_postulada}`,'info');
+      this.mostrarAviso(`Tutor aceptado en ${post.materia_postulada}`, 'info');
       await this.cargarPostulaciones(); 
-      this.cargarEstadisticas();
+      await this.cargarEstadisticas();
     } catch (e) { 
-      this.mostrarAviso('Error al aceptar tutor','error'); 
+      this.mostrarAviso('Error al aceptar tutor', 'error'); 
     }
   }
 
- async rechazar(post: any) {
-    const confirmar = await this.confirmarAccion(`¿Estás seguro de RECHAZAR a ${post.nombre} para dictar ${post.materia_postulada}?`,'');
+  async rechazar(post: any) {
+    const confirmar = await this.confirmarAccion(`¿Estás seguro de RECHAZAR a ${post.nombre} para dictar ${post.materia_postulada}?`, '');
     if (!confirmar) return;
 
     try {
-      // 1. Procesamos el rechazo en la Base de Datos
       await this.dbService.rechazarPostulacion(post.id);
       
-      // 2. 🌟 Enviamos la Notificación de RECHAZO al estudiante
       try {
         await this.dbService.crearNotificacion({
           titulo: 'Postulación Rechazada ❌',
           mensaje: `Tu solicitud para ser tutor de "${post.materia_postulada}" no pudo ser aprobada en esta ocasión. Sigue esforzándote.`,
           tipo: 'POSTULACION',
-          correo_destino: post.correo, // 🌟 Clave: Solo a él
+          correo_destino: post.correo,
           sede_destino: post.sede,
           rol_destino: 'ESTUDIANTE' 
         });
-      } catch (e) {
-        console.warn('Postulación rechazada, pero falló la notificación', e);
-      }
+      } catch (e) {}
 
-      this.mostrarAviso(`Postulación para ${post.materia_postulada} rechazada.`,'info');
+      this.mostrarAviso(`Postulación para ${post.materia_postulada} rechazada.`, 'info');
       await this.cargarPostulaciones(); 
+      await this.cargarEstadisticas();
     } catch (error) {
-      this.mostrarAviso('Error al rechazar la postulación.','error');
+      this.mostrarAviso('Error al rechazar la postulación.', 'error');
     }
   }
+
   obtenerDia(clave: any): string { return String(clave).split('-')[0] || ''; }
   obtenerHora(clave: any): string { return String(clave).split('-')[1] || ''; }
 
@@ -558,106 +551,142 @@ async aceptar(post: any) {
     this.router.navigate(['/tabs/perfil']); 
   }
 
-  // ==========================================
-  // 🌟 ESTADÍSTICAS MEJORADAS (BARRAS MUESTRA TUTORÍAS IMPARTIDAS)
-  // ==========================================
+  // ==========================================================================
+  // 🌟 PUNTOS #15 y #16: INDICADORES NUMÉRICOS SOBRIOS + FILTROS (SEDE/PERÍODO/CARRERA)
+  // ==========================================================================
   async cargarEstadisticas() {
     try {
-      const queryTutores = await getDocs(collection(this.firestore, 'Tutores'));
-      const queryAsistencias = await getDocs(collection(this.firestore, 'Asistencias'));
-      
-      const conteoTutoresCarrera: { [key: string]: number } = {};
-      const mapaTutorCarrera: { [correo: string]: string } = {};
-      const esSuperAdmin = this.rolUsuario === 'ADMIN';
+      const [queryTutores, queryAsistencias, queryPostulaciones] = await Promise.all([
+        getDocs(collection(this.firestore, 'Tutores')),
+        getDocs(collection(this.firestore, 'Asistencias')),
+        getDocs(query(collection(this.firestore, 'Postulaciones'), where('estado_aprobacion', '==', 'PENDIENTE')))
+      ]);
 
-      // 1. Procesar Tutores Activos (Para Pastel)
-      queryTutores.forEach((doc) => {
-        const data = doc.data();
+      const esSuperAdmin = this.rolUsuario === 'ADMIN';
+      const mapaTutorInfo: { [correo: string]: { carrera: string; sede: string } } = {};
+      const resumenCarreras: { [carrera: string]: { tutoresActivos: number; tutoriasImpartidas: number } } = {};
+
+      let totalTutores = 0;
+      let tutoresActivos = 0;
+
+      // 1. Procesar Tutores
+      queryTutores.forEach((docSnap) => {
+        const data = docSnap.data();
         const sedeTutor = String(data['sede'] || '').toUpperCase();
-        const estadoTutor = String(data['estado'] || '').toUpperCase(); 
-        const correoTutor = String(data['correo'] || data['correo_google'] || '').toLowerCase();
-        const carrera = data['carrera'] || 'NO ASIGNADA';
+        const estadoTutor = String(data['estado'] || '').toUpperCase();
+        const correoTutor = String(data['correo'] || data['correo_google'] || '').toLowerCase().trim();
+        const carrera = String(data['carrera'] || 'NO ASIGNADA').trim().toUpperCase();
+        const periodoTutor = String(data['ultimo_periodo_activo'] || data['periodo'] || '').trim();
 
         const tienePermisoSede = esSuperAdmin || sedeTutor === this.sedeUsuario;
+        const cumpleSede = tienePermisoSede && (this.filtroSedeGraficas === 'GLOBAL' || sedeTutor === this.filtroSedeGraficas);
+        if (!cumpleSede) return;
 
-        if (tienePermisoSede && (this.filtroSedeGraficas === 'GLOBAL' || sedeTutor === this.filtroSedeGraficas)) {
-          mapaTutorCarrera[correoTutor] = carrera; // Guardamos su carrera en el diccionario
+        // Guardamos el mapa completo de la sede para cruzar con asistencias históricas
+        mapaTutorInfo[correoTutor] = { carrera, sede: sedeTutor };
+
+        const cumpleCarrera = this.filtroCarreraMetricas === 'TODAS' || carrera === this.filtroCarreraMetricas;
+        const cumplePeriodoTutor = this.filtroPeriodoMetricas === 'TODOS' || !periodoTutor || periodoTutor === this.filtroPeriodoMetricas;
+
+        if (cumpleCarrera && cumplePeriodoTutor) {
+          totalTutores++;
           if (estadoTutor === 'ACTIVO') {
-            conteoTutoresCarrera[carrera] = (conteoTutoresCarrera[carrera] || 0) + 1;
+            tutoresActivos++;
+            if (!resumenCarreras[carrera]) {
+              resumenCarreras[carrera] = { tutoresActivos: 0, tutoriasImpartidas: 0 };
+            }
+            resumenCarreras[carrera].tutoresActivos++;
           }
         }
       });
 
-      // 2. Procesar Tutorías Impartidas (Para Barras)
-      const conteoTutoriasCarrera: { [key: string]: number } = {};
-      queryAsistencias.forEach((doc) => {
-         const data = doc.data();
-         const correoTutor = String(data['correoTutor'] || '').toLowerCase();
-         
-         // Si el tutor de esta asistencia pertenece a la jurisdicción actual
-         if (mapaTutorCarrera[correoTutor]) {
-            const carrera = mapaTutorCarrera[correoTutor];
-            conteoTutoriasCarrera[carrera] = (conteoTutoriasCarrera[carrera] || 0) + 1;
-         }
+      // 2. Procesar Asistencias (Tutorías Impartidas, Horas y Estudiantes Únicos)
+      let tutoriasImpartidas = 0;
+      let minutosTotales = 0;
+      const estudiantesSet = new Set<string>();
+
+      queryAsistencias.forEach((docSnap) => {
+        const data = docSnap.data();
+        const correoTutor = String(data['correoTutor'] || '').toLowerCase().trim();
+        const sedeAsis = String(data['sede'] || mapaTutorInfo[correoTutor]?.sede || '').toUpperCase();
+        const carreraAsis = String(mapaTutorInfo[correoTutor]?.carrera || 'NO ASIGNADA').toUpperCase();
+        const periodoAsis = String(data['periodo'] || '').trim();
+
+        const tienePermisoSede = esSuperAdmin || sedeAsis === this.sedeUsuario;
+        const cumpleSede = tienePermisoSede && (this.filtroSedeGraficas === 'GLOBAL' || sedeAsis === this.filtroSedeGraficas);
+        const cumpleCarrera = this.filtroCarreraMetricas === 'TODAS' || carreraAsis === this.filtroCarreraMetricas;
+        const cumplePeriodo = this.filtroPeriodoMetricas === 'TODOS' || periodoAsis === this.filtroPeriodoMetricas;
+
+        if (cumpleSede && cumpleCarrera && cumplePeriodo) {
+          tutoriasImpartidas++;
+          const hrs = Number(data['horas_duracion'] || 0);
+          const mins = Number(data['minutos_duracion'] || 0);
+          minutosTotales += (hrs * 60) + mins;
+
+          const idEst = String(data['correo_estudiante'] || data['estudiante_info'] || '').toLowerCase().trim();
+          if (idEst) estudiantesSet.add(idEst);
+
+          if (!resumenCarreras[carreraAsis]) {
+            resumenCarreras[carreraAsis] = { tutoresActivos: 0, tutoriasImpartidas: 0 };
+          }
+          resumenCarreras[carreraAsis].tutoriasImpartidas++;
+        }
       });
 
-      const labelsPie = Object.keys(conteoTutoresCarrera);
-      const dataPie = Object.values(conteoTutoresCarrera);
+      // 3. Procesar Postulaciones Pendientes en el mismo filtro
+      let postulacionesPendientes = 0;
+      queryPostulaciones.forEach((docSnap) => {
+        const data = docSnap.data();
+        const sedePost = String(data['sede'] || '').toUpperCase();
+        const carreraPost = String(data['carrera'] || '').trim().toUpperCase();
+        const periodoPost = String(data['periodo'] || '').trim();
 
-      const labelsBar = Object.keys(conteoTutoriasCarrera);
-      const dataBar = Object.values(conteoTutoriasCarrera);
+        const tienePermisoSede = esSuperAdmin || sedePost === this.sedeUsuario;
+        const cumpleSede = tienePermisoSede && (this.filtroSedeGraficas === 'GLOBAL' || sedePost === this.filtroSedeGraficas);
+        const cumpleCarrera = this.filtroCarreraMetricas === 'TODAS' || carreraPost === this.filtroCarreraMetricas;
+        const cumplePeriodo = this.filtroPeriodoMetricas === 'TODOS' || !periodoPost || periodoPost === this.filtroPeriodoMetricas;
 
-      setTimeout(() => {
-        this.generarGraficoBarras(labelsBar, dataBar);
-        this.generarGraficoPastel(labelsPie, dataPie);
-      }, 150);
+        if (cumpleSede && cumpleCarrera && cumplePeriodo) {
+          postulacionesPendientes++;
+        }
+      });
 
+      this.metricasAdmin = {
+        totalTutores,
+        tutoresActivos,
+        porcentajeActivos: totalTutores > 0 ? Math.round((tutoresActivos / totalTutores) * 100) : 0,
+        tutoriasImpartidas,
+        horasImpartidas: Math.round((minutosTotales / 60) * 10) / 10,
+        estudiantesUnicos: estudiantesSet.size,
+        postulacionesPendientes
+      };
+
+      this.desglosePorCarrera = Object.entries(resumenCarreras)
+        .map(([carrera, vals]) => ({
+          carrera,
+          tutoresActivos: vals.tutoresActivos,
+          tutoriasImpartidas: vals.tutoriasImpartidas
+        }))
+        .sort((a, b) => b.tutoriasImpartidas - a.tutoriasImpartidas || b.tutoresActivos - a.tutoresActivos);
+
+      if (this.cdr) this.cdr.detectChanges();
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
     }
   }
 
-  generarGraficoBarras(labels: string[], data: number[]) {
-    if (this.graficoBarras) this.graficoBarras.destroy();
-    if (!this.barCanvas || !this.barCanvas.nativeElement) return; 
-
-    this.graficoBarras = new Chart(this.barCanvas.nativeElement, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{ label: 'Tutorías Impartidas', data: data, backgroundColor: '#003366', borderRadius: 4 }], // 🌟 ACTUALIZADO EL LABEL
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }, 
-    });
-  }
-
-  generarGraficoPastel(labels: string[], data: number[]) {
-    if (this.graficoPastel) this.graficoPastel.destroy();
-    if (!this.pieCanvas || !this.pieCanvas.nativeElement) return; 
-
-    this.graficoPastel = new Chart(this.pieCanvas.nativeElement, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{ data: data, backgroundColor: ['#003366', '#d97706', '#10b981', '#ef4444', '#8b5cf6'] }],
-      },
-      options: { responsive: true, maintainAspectRatio: false },
-    });
-  }
-
   // ==========================================
-  // 🌟 BLOQUEO DE MULTI-ENVÍO EN ANUNCIOS
+  // CARTELERA DIGITAL
   // ==========================================
   async publicarAnuncio() {
-    if (this.enviandoAnuncio) return; // 🌟 BARRERA CONTRA CLICS REPETIDOS
+    if (this.enviandoAnuncio) return;
 
     if (!this.nuevoAnuncio.titulo || !this.nuevoAnuncio.descripcion) {
-      this.mostrarAviso('Por favor, llena el título y la descripción del comunicado.','advertencia');
+      this.mostrarAviso('Por favor, llena el título y la descripción del comunicado.', 'advertencia');
       return;
     }
 
-    this.enviandoAnuncio = true; // 🌟 BLOQUEAMOS EL BOTÓN
-
+    this.enviandoAnuncio = true;
     const destinoSeguro = this.rolUsuario === 'ADMIN' ? this.nuevoAnuncio.sede_destino.toUpperCase() : this.sedeUsuario;
 
     const payload = {
@@ -682,14 +711,13 @@ async aceptar(post: any) {
         sede_destino: destinoSeguro 
       });
 
-      this.mostrarAviso('¡Comunicado oficial publicado con éxito!','exito');
-      
+      this.mostrarAviso('¡Comunicado oficial publicado con éxito!', 'exito');
       this.nuevoAnuncio = { titulo: '', descripcion: '', fecha_evento: new Date().toISOString(), sede_destino: 'GLOBAL' };
     } catch (error) {
       console.error('Error al publicar:', error);
-      this.mostrarAviso('Error al publicar el comunicado.','error');
+      this.mostrarAviso('Error al publicar el comunicado.', 'error');
     } finally {
-      this.enviandoAnuncio = false; // 🌟 LIBERAMOS EL BOTÓN CUANDO TERMINE
+      this.enviandoAnuncio = false;
     }
   }
 
@@ -718,7 +746,6 @@ async aceptar(post: any) {
 
             if (fechaDelAviso.getTime() < hoy.getTime()) {
               await deleteDoc(doc(this.firestore, 'Anuncios', documento.id));
-              console.log(`Aviso expirado eliminado: ${data['titulo']}`);
             }
           }
         }

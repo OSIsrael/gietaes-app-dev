@@ -31,17 +31,25 @@
 
 <ion-content class="fondo-app">
   <div class="ion-padding" style="padding-bottom: 200px;">
-    <h2 class="titulo-azul">TUTORÍAS A IMPARTIR:</h2>
+    
+    <!-- CABECERA CON BOTÓN DE REGISTRO MANUAL ESPONTÁNEO (PUNTO #12) -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+      <h2 class="titulo-azul" style="margin: 0;">TUTORÍAS A IMPARTIR:</h2>
+      <ion-button (click)="abrirModalManual()" size="small" style="--background: #003366; --color: #EAB308; font-weight: 900; --border-radius: 10px; height: 36px;">
+        <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+        Tutoría Manual
+      </ion-button>
+    </div>
 
     <p *ngIf="cargando" style="text-align: center; color: #666; margin-top: 30px;">Cargando tu agenda docente...</p>
     
     <div *ngIf="!cargando && tutoriasPorImpartir.length === 0" style="text-align: center; color: #666; margin-top: 40px;">
       <ion-icon name="calendar-outline" style="font-size: 4rem; color: #cbd5e1;"></ion-icon>
       <p style="font-size: 1.1rem; font-weight: bold; color: #003366; margin-top: 10px;">Agenda Libre</p>
-      <p>Aún no tienes estudiantes agendados en tus horarios.</p>
+      <p>Aún no tienes estudiantes agendados. Si atendiste a alguien de forma espontánea, usa el botón <strong>+ Tutoría Manual</strong>.</p>
     </div>
 
-    <!-- 🌟 GUÍA FORMAL PARA EL TUTOR -->
+    <!-- GUÍA FORMAL PARA EL TUTOR -->
     <div class="guia-contacto" *ngIf="!cargando && tutoriasPorImpartir.length > 0" style="margin-bottom: 25px; background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2);">
       <h4 style="color: #003366; font-size: 0.95rem; font-weight: 800; margin-top: 0; margin-bottom: 12px; display: flex; align-items: center;">
         <ion-icon name="briefcase-outline" style="font-size: 1.4rem; color: #10b981; margin-right: 6px;"></ion-icon>
@@ -49,13 +57,13 @@
       </h4>
       <ol style="margin: 0; padding-left: 25px; color: #475569; font-size: 0.85rem; line-height: 1.6;">
         <li style="margin-bottom: 6px;">Seleccione el <strong>indicador de color</strong> para CONFIRMAR o CANCELAR la solicitud de tutoría.</li>
-        <li style="margin-bottom: 6px;"><strong>Deslice la tarjeta</strong> hacia los lados para contactar al estudiante vía WhatsApp y coordinar la logística.</li>
+        <li style="margin-bottom: 6px;">Use <strong>Reprogramar</strong> si necesita ajustar la fecha/hora; el estudiante será notificado automáticamente.</li>
         <li style="margin-bottom: 6px;">El registro de asistencia solo se habilitará cuando la tutoría esté en estado <strong>CONFIRMADA</strong>.</li>
       </ol>
     </div>
 
     <ion-list style="background: transparent;" lines="none" *ngIf="!cargando">
-     <ion-item-sliding *ngFor="let t of tutoriasPorImpartir" style="background: transparent; margin-bottom: 15px;">
+      <ion-item-sliding *ngFor="let t of tutoriasPorImpartir" style="background: transparent; margin-bottom: 15px;">
         
         <ion-item-options side="start">
           <ion-item-option color="success" (click)="contactarEstudiante(t.celularEstudiante, t.codigoPaisEstudiante, t.nombreEstudiante, t.materia)">
@@ -71,44 +79,58 @@
           <div class="tarjeta-azul" style="width: 100%; margin: 0; border-left: 5px solid #EAB308;">
             <div class="icono-blanco" style="color: #003366;"><ion-icon name="person-outline"></ion-icon></div>
             <div class="info-texto">
-              <h3 style="font-size: 1.1rem; margin-bottom: 5px;">{{ t.materia }}</h3>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
+                <h3 style="font-size: 1.1rem; margin: 0;">{{ t.materia }}</h3>
+                <span *ngIf="t.tipo_flujo === 'PROCESO'" style="background: #10b981; color: #ffffff; font-size: 0.65rem; font-weight: 900; padding: 2px 7px; border-radius: 10px;">
+                  PROCESO
+                </span>
+              </div>
               
-              <p style="color: #003366; font-weight: 900; font-size: 0.9rem; margin-bottom: 5px;">
+              <p style="color: #EAB308; font-weight: 900; font-size: 0.9rem; margin-bottom: 5px;">
                 Solicitante: {{ t.nombreEstudiante }}
               </p>
 
-              <!-- 🌟 ÍCONOS DINÁMICOS DE INVITADOS UNIDOS -->
+              <!-- ÍCONOS DINÁMICOS DE INVITADOS UNIDOS -->
               <div *ngIf="t.alumnosExtra && t.alumnosExtra.length > 0" style="display: flex; align-items: center; margin-bottom: 8px;">
-                <div style="display: flex; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 20px; align-items: center;">
-                  <!-- Imprime un ícono de persona por cada alumno extra -->
-                  <ion-icon name="person" *ngFor="let extra of t.alumnosExtra" style="color: #d97706; font-size: 1.1rem; margin-right: 2px;"></ion-icon>
-                  <span style="font-size: 0.75rem; color: #003366; font-weight: bold; margin-left: 4px;">(+{{ t.alumnosExtra.length }} unidos)</span>
+                <div style="display: flex; background: rgba(255,255,255,0.18); padding: 4px 10px; border-radius: 20px; align-items: center;">
+                  <ion-icon name="person" *ngFor="let extra of t.alumnosExtra" style="color: #EAB308; font-size: 1rem; margin-right: 2px;"></ion-icon>
+                  <span style="font-size: 0.75rem; color: #ffffff; font-weight: bold; margin-left: 4px;">(+{{ t.alumnosExtra.length }} unidos)</span>
                 </div>
               </div>
 
-              <!-- 🌟 DETALLES DE TUTORIA ACTUALIZADO -->
-              <p style="margin-bottom: 2px; font-size: 0.8rem; color: #475569;">
+              <!-- DETALLES DE TUTORÍA -->
+              <p style="margin-bottom: 3px; font-size: 0.8rem;">
                 <ion-icon name="calendar-outline" style="vertical-align: middle;"></ion-icon> 
                 Fecha: {{ t.fecha_exacta ? (t.fecha_exacta + ' | ' + t.dia) : t.dia }}
               </p>
               
-              <p style="margin-bottom: 2px; font-size: 0.8rem; color: #475569;"><ion-icon name="time-outline" style="vertical-align: middle;"></ion-icon> Hora: {{ t.hora }}</p>
-              <p style="font-weight: bold; font-size: 0.8rem; color: #475569;"><ion-icon name="business-outline" style="vertical-align: middle;"></ion-icon> Modalidad: {{ t.modalidad || 'Presencial' }}</p>
+              <p style="margin-bottom: 3px; font-size: 0.8rem;">
+                <ion-icon name="time-outline" style="vertical-align: middle;"></ion-icon> Hora: {{ t.hora }}
+              </p>
+              <p style="font-weight: bold; font-size: 0.8rem;">
+                <ion-icon name="business-outline" style="vertical-align: middle;"></ion-icon> Modalidad: {{ t.modalidad || 'Presencial' }}
+              </p>
 
-              <p *ngIf="t.codigo && t.codigo !== 'SIN CÓDIGO'" style="font-size: 0.75rem; color: #666; margin-top: 8px; font-weight: bold; background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 4px; display: inline-block;">
+              <p *ngIf="t.codigo && t.codigo !== 'SIN CÓDIGO'" style="font-size: 0.75rem; color: #ffffff; margin-top: 8px; font-weight: bold; background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 4px; display: inline-block;">
                 CÓDIGO GRUPAL: {{ t.codigo }}
               </p>
 
-              <!-- 🌟 BOTÓN DE ASISTENCIA (BLOQUEADO SI ESTÁ PENDIENTE) -->
-              <div style="margin-top: 10px;">
-                <ion-button *ngIf="t.estado === 'CONFIRMADA' || t.estado === 'ACEPTADA'" fill="solid" size="small" (click)="irATomarAsistencia(t)" style="--background: #003366; --color: white; font-weight: bold; --border-radius: 6px; height: 30px;">
+              <!-- BOTONES DE ACCIÓN (ASISTENCIA + REPROGRAMAR PUNTO #6) -->
+              <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                <ion-button *ngIf="t.estado === 'CONFIRMADA' || t.estado === 'ACEPTADA'" fill="solid" size="small" (click)="irATomarAsistencia(t)" style="--background: #EAB308; --color: #003366; font-weight: 900; --border-radius: 6px; height: 32px;">
                   <ion-icon name="document-text-outline" slot="start"></ion-icon>
                   Tomar Asistencia
                 </ion-button>
-                <p *ngIf="t.estado === 'PENDIENTE'" style="font-size: 0.7rem; color: #ef4444; font-style: italic; font-weight: bold;">
-                  * Confirme la tutoría para habilitar la asistencia.
-                </p>
+
+                <ion-button fill="outline" size="small" (click)="abrirModalReprogramar(t)" style="--border-color: rgba(255,255,255,0.6); --color: #ffffff; font-weight: 800; --border-radius: 6px; height: 32px;">
+                  <ion-icon name="create-outline" slot="start"></ion-icon>
+                  Reprogramar
+                </ion-button>
               </div>
+
+              <p *ngIf="t.estado === 'PENDIENTE'" style="font-size: 0.72rem; color: #fde047; font-style: italic; font-weight: bold; margin-top: 6px;">
+                * Confirme la tutoría para habilitar la asistencia.
+              </p>
             </div>
             
             <div class="acciones-derecha">
@@ -167,6 +189,214 @@
 
   </div>
 
+<!-- ========================================================= -->
+  <!-- MODAL PUNTO #12: REGISTRO MANUAL ESPONTÁNEO DE TUTORÍA    -->
+  <!-- ========================================================= -->
+  <ion-modal [isOpen]="mostrarModalManual" (didDismiss)="mostrarModalManual = false">
+    <ng-template>
+      <div style="background: #003366; padding: 18px 15px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 style="color: #ffffff; font-weight: 900; margin: 0; font-size: 1.1rem;">REGISTRO MANUAL ESPONTÁNEO</h2>
+          <p style="color: #EAB308; font-size: 0.75rem; margin: 3px 0 0 0;">Para sesiones atendidas sin reserva previa</p>
+        </div>
+        <ion-button fill="clear" (click)="mostrarModalManual = false" style="--color: #ffffff;">
+          <ion-icon name="close-outline" style="font-size: 1.6rem;"></ion-icon>
+        </ion-button>
+      </div>
+
+      <ion-content style="--background: #f8fafc;">
+        <div style="padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+
+          <!-- 1. BUSCADOR DE ESTUDIANTE -->
+          <div>
+            <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">
+              1. Buscar Estudiante (Nombre o Cédula) *
+            </label>
+            <input type="text" [(ngModel)]="busquedaEstudianteManual" (input)="filtrarEstudiantesManual()"
+                   placeholder="Escribe nombre o cédula..."
+                   style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;">
+            
+            <!-- Sugerencias -->
+            <div *ngIf="estudiantesFiltradosManual.length > 0" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; margin-top: 4px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+              <div *ngFor="let est of estudiantesFiltradosManual" (click)="seleccionarEstudianteManual(est)"
+                   style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer;">
+                <p style="margin: 0; font-weight: 800; color: #003366; font-size: 0.85rem;">{{ est.nombre_completo }}</p>
+                <p style="margin: 2px 0 0 0; color: #64748b; font-size: 0.75rem;">{{ est.cedula }} • {{ est.correo_google || est.correo }}</p>
+              </div>
+            </div>
+
+            <!-- Estudiante seleccionado -->
+            <div *ngIf="formManual.correoEstudiante" style="margin-top: 8px; background: rgba(16, 185, 129, 0.12); border: 1px solid #10b981; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <p style="margin: 0; font-weight: 900; color: #065f46; font-size: 0.85rem;">{{ formManual.nombreEstudiante }}</p>
+                <p style="margin: 2px 0 0 0; color: #047857; font-size: 0.75rem;">{{ formManual.correoEstudiante }}</p>
+              </div>
+              <ion-icon name="close-circle" (click)="limpiarEstudianteManual()" style="color: #ef4444; font-size: 1.4rem; cursor: pointer;"></ion-icon>
+            </div>
+          </div>
+
+          <!-- 2. MATERIA -->
+          <div>
+            <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">
+              2. Materia Impartida *
+            </label>
+            <select *ngIf="materiasTutor.length > 0" [(ngModel)]="formManual.materia"
+                    style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;">
+              <option value="">-- Selecciona una materia --</option>
+              <option *ngFor="let mat of materiasTutor" [value]="mat">{{ mat }}</option>
+            </select>
+            <input *ngIf="materiasTutor.length === 0" type="text" [(ngModel)]="formManual.materia"
+                   placeholder="Nombre de la materia..."
+                   style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;">
+          </div>
+
+          <!-- 3 y 4. DÍA Y FRANJA HORARIA -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">3. Día *</label>
+              <select [(ngModel)]="formManual.dia_elegido"
+                      style="width: 100%; padding: 11px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.85rem;">
+                <option *ngFor="let d of diassemana" [value]="d">{{ d }}</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">4. Horario *</label>
+              <select [(ngModel)]="formManual.hora_elegida"
+                      style="width: 100%; padding: 11px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.85rem;">
+                <option *ngFor="let h of franjasHorarias" [value]="h">{{ h }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 5 y 6. MODALIDAD Y TIPO DE TUTORÍA -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">5. Modalidad</label>
+              <select [(ngModel)]="formManual.modalidad"
+                      style="width: 100%; padding: 11px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.85rem;">
+                <option value="PRESENCIAL">Presencial</option>
+                <option value="VIRTUAL">Virtual</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">6. Tipo de Tutoría</label>
+              <select [(ngModel)]="formManual.tipo_tutoria"
+                      style="width: 100%; padding: 11px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.85rem;">
+                <option value="CONSULTA">Consulta</option>
+                <option value="PROCESO">Proceso</option>
+                <option value="PRÁCTICA">Práctica</option>
+                <option value="INTENSIVA">Intensiva</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 7. DERIVACIÓN -->
+          <div>
+            <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">7. Tipo de Derivación</label>
+            <select [(ngModel)]="formManual.tipo_derivacion"
+                    style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.85rem;">
+              <option value="DECISIÓN PROPIA">DECISIÓN PROPIA</option>
+              <option value="PROYECTO LALA">PROYECTO LALA</option>
+              <option value="CONSEJERÍA ACADÉMICA">CONSEJERÍA ACADÉMICA</option>
+              <option value="DIRECCIÓN DE CARRERA">DIRECCIÓN DE CARRERA</option>
+              <option value="DOCENTE DE LA CARRERA">DOCENTE DE LA CARRERA</option>
+            </select>
+          </div>
+
+          <!-- 8. DOCENTE DE CÁTEDRA (AUTOCOMPLETADO DESDE EXCEL) -->
+          <div>
+            <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">
+              8. Docente de la Materia (Buscar en catálogo)
+            </label>
+            <input type="text" [(ngModel)]="formManual.docente" (input)="filtrarDocentesManual()"
+                   placeholder="Escribe apellido o nombre del docente..."
+                   style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;">
+            
+            <div *ngIf="docentesFiltradosManual.length > 0" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; margin-top: 4px; max-height: 150px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+              <div *ngFor="let docName of docentesFiltradosManual" (click)="seleccionarDocenteManual(docName)"
+                   style="padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #003366;">
+                {{ docName }}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </ion-content>
+
+      <div style="padding: 14px 18px; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px;">
+        <ion-button expand="block" [disabled]="guardandoManual" (click)="guardarTutoriaManual(true)"
+                    style="--background: #EAB308; --color: #003366; font-weight: 900; height: 46px; --border-radius: 12px;">
+          {{ guardandoManual ? 'PROCESANDO...' : 'CREAR Y TOMAR ASISTENCIA AHORA' }}
+        </ion-button>
+        <ion-button expand="block" fill="outline" [disabled]="guardandoManual" (click)="guardarTutoriaManual(false)"
+                    style="--border-color: #003366; --color: #003366; font-weight: 800; height: 42px; --border-radius: 12px;">
+          SOLO AGENDAR EN MI LISTA
+        </ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
+  <!-- ========================================================= -->
+  <!-- MODAL PUNTO #6: REPROGRAMAR FECHA / HORA + NOTIFICACIÓN   -->
+  <!-- ========================================================= -->
+  <ion-modal [isOpen]="mostrarModalReprogramar" (didDismiss)="mostrarModalReprogramar = false">
+    <ng-template>
+      <div style="background: #003366; padding: 18px 15px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 style="color: #ffffff; font-weight: 900; margin: 0; font-size: 1.1rem;">REPROGRAMAR TUTORÍA</h2>
+          <p style="color: #EAB308; font-size: 0.75rem; margin: 3px 0 0 0;">{{ tutoriaAReprogramar?.materia }} • {{ tutoriaAReprogramar?.nombreEstudiante }}</p>
+        </div>
+        <ion-button fill="clear" (click)="mostrarModalReprogramar = false" style="--color: #ffffff;">
+          <ion-icon name="close-outline" style="font-size: 1.6rem;"></ion-icon>
+        </ion-button>
+      </div>
+
+      <ion-content style="--background: #f8fafc;">
+        <div style="padding: 18px; display: flex; flex-direction: column; gap: 15px;">
+          <div style="background: rgba(234, 179, 8, 0.12); border-left: 4px solid #EAB308; padding: 10px 12px; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.8rem; color: #003366; font-weight: 700;">
+              Al guardar, la tutoría pasará a <strong>CONFIRMADA</strong> y se enviará una notificación automática al estudiante con el nuevo horario.
+            </p>
+          </div>
+
+          <div>
+            <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">Nuevo Día *</label>
+            <select [(ngModel)]="formReprogramar.dia_elegido" (change)="actualizarFechaSugeridaReprogramacion()"
+                    style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;">
+              <option *ngFor="let d of diassemana" [value]="d">{{ d }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">Nueva Franja Horaria *</label>
+            <select [(ngModel)]="formReprogramar.hora_elegida"
+                    style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;">
+              <option *ngFor="let h of franjasHorarias" [value]="h">{{ h }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">Fecha Exacta *</label>
+            <input type="text" [(ngModel)]="formReprogramar.fecha_exacta" placeholder="Ej. 20 de noviembre"
+                   style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;">
+          </div>
+
+          <div>
+            <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">Motivo o Nota para el Estudiante (Opcional)</label>
+            <textarea [(ngModel)]="formReprogramar.motivo" rows="3" placeholder="Ej. Cruce con laboratorio, nos vemos en el bloque de la tarde..."
+                      style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;"></textarea>
+          </div>
+        </div>
+      </ion-content>
+
+      <div style="padding: 14px 18px; background: #ffffff; border-top: 1px solid #e2e8f0;">
+        <ion-button expand="block" [disabled]="guardandoReprogramacion" (click)="confirmarReprogramacion()"
+                    style="--background: #003366; --color: #ffffff; font-weight: 900; height: 48px; --border-radius: 12px;">
+          {{ guardandoReprogramacion ? 'GUARDANDO...' : 'CONFIRMAR NUEVO HORARIO' }}
+        </ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
   <!-- MODAL DE AYUDA -->
   <div class="overlay-modal animate__animated animate__fadeIn" *ngIf="mostrarGuiaTutor">
     <div class="modal-premium animate__animated animate__zoomIn">
@@ -180,21 +410,21 @@
           <ion-icon name="checkmark-circle-outline"></ion-icon>
           <div>
             <strong>1. Gestiona Solicitudes</strong>
-            <p>Revisa las tutorías pendientes. Toca la bolita de color para CONFIRMARLAS o CANCELARLAS.</p>
+            <p>Revisa las tutorías pendientes. Toca la bolita de color para CONFIRMARLAS o CANCELARLAS, o usa "Reprogramar".</p>
           </div>
         </div>
         <div class="step-item">
-          <ion-icon name="logo-whatsapp" style="color: #25D366;"></ion-icon>
+          <ion-icon name="add-circle-outline" style="color: #003366;"></ion-icon>
           <div>
-            <strong>2. Contacta al Alumno</strong>
-            <p>Desliza la tarjeta a la izquierda y usa WhatsApp para coordinar el aula física o enviarle el enlace de Zoom.</p>
+            <strong>2. Tutorías Espontáneas</strong>
+            <p>Usa "+ Tutoría Manual" si brindaste apoyo sin cita previa para registrar la asistencia al instante.</p>
           </div>
         </div>
         <div class="step-item">
           <ion-icon name="document-text-outline"></ion-icon>
           <div>
             <strong>3. Registra Asistencia</strong>
-            <p>Al terminar la tutoría, ve a la pestaña "Asistencia" para registrar la sesión y sumar horas a tus estadísticas.</p>
+            <p>Pulsa "Tomar Asistencia" en una tutoría confirmada para abrir la hoja de asistencia y sumar horas.</p>
           </div>
         </div>
       </div>
@@ -206,7 +436,7 @@
     </div>
   </div>
  
-  <!-- 🌟 MODAL DE RENOVACIÓN TIPO WIZARD (PASO A PASO) -->
+  <!-- MODAL DE RENOVACIÓN TIPO WIZARD -->
   <ion-modal [isOpen]="mostrarModalRenovacionTutor" [backdropDismiss]="false">
     <ng-template>
       <div style="background: #003366; padding: 20px 15px; text-align: center; position: relative; z-index: 10;">
@@ -219,7 +449,7 @@
       <ion-content style="--background: #f8fafc;">
         <div style="padding: 20px;">
           
-          <!-- ================= PASO 1: DECISIÓN ================= -->
+          <!-- PASO 1: DECISIÓN -->
           <div *ngIf="pasoActual === 1" class="animate__animated animate__fadeIn">
             <h3 style="color: #003366; font-weight: 900; text-align: center; margin-bottom: 25px;">¿Deseas continuar siendo Tutor este periodo?</h3>
             <div class="tarjeta-btn" [class.activa]="decisionTutor === 'SI'" (click)="seleccionarDecision('SI')">
@@ -232,7 +462,7 @@
             </div>
           </div>
 
-          <!-- ================= PASO 2: DATOS BÁSICOS ================= -->
+          <!-- PASO 2: DATOS BÁSICOS -->
           <div *ngIf="pasoActual === 2" class="animate__animated animate__fadeInRight">
             <div style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; padding: 12px; border-radius: 8px; margin-bottom: 25px;">
               <p style="margin: 0; color: #003366; font-weight: 800; font-size: 0.9rem;">
@@ -252,7 +482,7 @@
             </div>
           </div>
 
-          <!-- ================= PASO 3: MATERIAS ================= -->
+          <!-- PASO 3: MATERIAS -->
           <div *ngIf="pasoActual === 3" class="animate__animated animate__fadeInRight">
             <label style="font-weight: 900; color: #003366; font-size: 1.1rem;">Materias a impartir</label>
             <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">Toca las materias que deseas dar este ciclo:</p>
@@ -269,7 +499,7 @@
             </div>
           </div>
 
-          <!-- ================= PASO 4: CALENDARIO ================= -->
+          <!-- PASO 4: CALENDARIO -->
           <div *ngIf="pasoActual === 4" class="animate__animated animate__fadeInRight">
             <label style="font-weight: 900; color: #003366; font-size: 1.1rem;">Configura tu Disponibilidad</label>
             <div style="display: flex; gap: 5px; margin-top: 15px;">
@@ -321,7 +551,7 @@
     </ng-template>
   </ion-modal>
 
-  <!-- 🌟 POPOVER: CAMBIO DE PANEL -->
+  <!-- POPOVER: CAMBIO DE PANEL -->
   <ion-popover [isOpen]="menuRolAbierto" [event]="eventoRol" (didDismiss)="menuRolAbierto = false" mode="ios" style="--background: #ffffff; --width: 220px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
     <ng-template>
       <ion-content class="ion-padding-vertical" style="--background: #ffffff;">
@@ -344,7 +574,7 @@
     </ng-template>
   </ion-popover>
 
-  <!-- 🌟 POPOVER: PERFIL Y OPCIONES -->
+  <!-- POPOVER: PERFIL Y OPCIONES -->
   <ion-popover [isOpen]="menuPerfilAbierto" [event]="eventoPerfil" (didDismiss)="menuPerfilAbierto = false" mode="ios" style="--background: #ffffff; --width: 280px; --border-radius: 12px; --box-shadow: 0 10px 25px rgba(0, 51, 102, 0.15);">
     <ng-template>
       <ion-content style="--background: #ffffff;">

@@ -35,7 +35,7 @@
       <!-- ========================================== -->
       <!-- VISTA 2: FORMULARIO DE REGISTRO COMPLETO -->
       <!-- ========================================== -->
-      <div *ngIf="modoRegistro && !cargando" class="animate__animated animate__fadeInUp">
+      <div *ngIf="modoRegistro && !cargando && !mostrarBienvenida" class="animate__animated animate__fadeInUp">
         
         <div class="header-registro">
           <div class="btn-atras" (click)="modoRegistro = false">
@@ -167,11 +167,45 @@
 
           </div>
 
-          <ion-button expand="block" class="btn-finalizar mt-4" (click)="procesarRegistroCompleto()">
+          <ion-button expand="block" class="btn-finalizar mt-4" (click)="procesarRegistroCompleto()" [disabled]="cargando">
             Finalizar Registro
           </ion-button>
         </div>
+      </div>
+      <!-- ========================================== -->
+      <!-- 🌟 VISTA 3: PANTALLA DE CARGA AL REGISTRAR -->
+      <!-- ========================================== -->
+      <div *ngIf="modoRegistro && cargando && !mostrarBienvenida" class="tarjeta-premium animate__animated animate__fadeIn" style="text-align: center; padding: 45px 25px;">
+        <ion-spinner name="crescent" style="width: 55px; height: 55px; color: #003366; margin-bottom: 18px;"></ion-spinner>
+        <h3 style="color: #003366; font-weight: 900; margin: 0 0 8px 0; font-size: 1.2rem;">CREANDO TU CUENTA</h3>
+        <p style="color: #475569; font-size: 0.95rem; margin: 0; line-height: 1.4;">
+          Estamos verificando tus datos institucionales y preparando tu perfil en LAS TUTORIAS ENTRE PARES...
+        </p>
+      </div>
+      <!-- ========================================== -->
+      <!-- 🌟 VISTA 4: BIENVENIDA CON FRASE SALESIANA -->
+      <!-- ========================================== -->
+      <div *ngIf="modoRegistro && mostrarBienvenida" class="tarjeta-premium animate__animated animate__zoomIn" style="text-align: center; padding: 35px 25px;">
+        <ion-icon name="checkmark-circle-outline" style="font-size: 64px; color: #10b981; margin-bottom: 10px;"></ion-icon>
+        
+        <h2 class="titulo-bienvenida" style="margin-bottom: 6px;">¡BIENVENIDO!</h2>
+        <p style="color: #003366; font-weight: 800; font-size: 1.05rem; margin: 0 0 14px 0;">
+          {{ nombres }} {{ apellidos }}
+        </p>
 
+        <p style="color: #475569; font-size: 0.92rem; line-height: 1.45; margin: 0 0 20px 0;">
+          Tu cuenta ha sido registrada exitosamente en el sistema de <strong>Tutorías entre Pares</strong>.
+        </p>
+
+        <div style="background: #f8fafc; border-left: 4px solid #EAB308; border-radius: 10px; padding: 15px; margin-bottom: 24px; text-align: left;">
+          <p style="color: #003366; font-style: italic; font-weight: 600; font-size: 0.92rem; margin: 0; line-height: 1.45;">
+            {{ fraseSalesianaActual }}
+          </p>
+        </div>
+
+        <ion-button expand="block" class="btn-finalizar" (click)="continuarDespuesDeBienvenida()">
+          Continuar a la Plataforma
+        </ion-button>
       </div>
     </div>
   </div>
