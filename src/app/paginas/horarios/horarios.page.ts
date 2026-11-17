@@ -76,6 +76,16 @@ export class HorariosPage implements OnInit {
   asignaturasMaster: any[] = [];
   asignaturasFiltradas: any[] = [];
 
+  // 🌟 PUNTO #13: Catálogo general de asignaturas para cubrir materias afines
+  catalogoGeneralMaterias: string[] = [];
+  verTodasLasMateriasCatalogo: boolean = false;
+  cambiarMateriaCatalogo: boolean = false;
+  busquedaMateriaCatalogo: string = '';
+  materiasCatalogoFiltradas: string[] = [];
+  materiaOriginalTabla: string = '';
+  todosLosTutoresActivosCache: any[] = [];
+  materiasPermitidasCarreraCache: string[] = [];
+
   reservaActual: any = null;
   correoUsuario: string = '';
   nombreUsuario: string = '';
@@ -195,7 +205,6 @@ export class HorariosPage implements OnInit {
     this.rolUsuario = rolActual; 
     this.sedeUsuario = (localStorage.getItem('sede') || 'CUENCA').toUpperCase();
     
-    // 1. Carga instantánea de permisos desde localStorage (evita parpadeos en el menú)
     this.tienePanelTutor = localStorage.getItem('tienePanelTutor') === 'true';
     this.tienePanelAdmin = localStorage.getItem('tienePanelAdmin') === 'true';
 
@@ -220,11 +229,9 @@ export class HorariosPage implements OnInit {
           this.usuarioDocId = snapUsuario.docs[0].id; 
           this.datosEstudianteActual = datosUsr;  
           
-          // PRIORIDAD 1: TÉRMINOS Y CONDICIONES
           if (datosUsr['terminos_aceptados'] === false || datosUsr['terminos_aceptados'] === undefined || datosUsr['terminos_aceptados'] === null) {
             this.mostrarModalTerminos = true;
           }
-          // PRIORIDAD 2: RENOVACIÓN DE CICLO
           else if (datosUsr['ultimo_periodo_activo'] !== this.periodoApp && this.rolUsuario !== 'ADMIN' && this.rolUsuario !== 'COORDINADOR') {
             this.mostrarModalRenovacionEstudiante = true;
           }
@@ -236,7 +243,6 @@ export class HorariosPage implements OnInit {
 
     await this.verificarNotificaciones(correo, this.rolUsuario, this.sedeUsuario);
 
-    // 2. Sincronización centralizada de permisos con Firestore
     const permisos = await this.dbService.obtenerPermisosPaneles(correo);
     this.tienePanelTutor = permisos.tienePanelTutor;
     this.tienePanelAdmin = permisos.tienePanelAdmin;
@@ -252,12 +258,18 @@ export class HorariosPage implements OnInit {
     const snapshotEstudiantes = await getDocs(collection(this.firestore, 'Estudiantes'));
     const todosLosEstudiantes = snapshotEstudiantes.docs.map(doc => doc.data());
 
+    // Cruzar rol y carrera real del tutor
     todosLosTutores.forEach(tutor => {
       const correoTutor = (tutor['correo'] || tutor['correo_google'] || '').toLowerCase().trim();
       const estudianteDB = todosLosEstudiantes.find(e => (e['correo'] || '').toLowerCase().trim() === correoTutor);
       if (estudianteDB && estudianteDB['rol']) tutor['rol'] = String(estudianteDB['rol']).toUpperCase();
       else tutor['rol'] = 'TUTOR'; 
+
+      const carreraReal = tutor['carrera'] || (estudianteDB ? estudianteDB['carrera'] : '');
+      tutor['carrera'] = carreraReal ? String(carreraReal).toUpperCase().trim() : 'CARRERA NO DEFINIDA';
     });
+
+    this.todosLosTutoresActivosCache = todosLosTutores;
 
     const coordinadoresDinamicos = todosLosEstudiantes
       .filter(e => {
@@ -277,36 +289,42 @@ export class HorariosPage implements OnInit {
       ...coordinadoresDinamicos
     ];
 
-    let tutoresProcesados: any[] = [];
+    // 🌟 PUNTO #13: Cargar catálogo general completo + materias de la carrera del estudiante
     let materiasPermitidas: string[] = [];
+    const setCatalogoGeneral = new Set<string>();
 
-    if (!this.esCoordinadorPanel) {
-      try {
-        const catalogos = await this.dbService.obtenerCatalogosDesdeExcel();
-        if (catalogos && catalogos.materias) {
-          materiasPermitidas = catalogos.materias
-            .filter((m: any) => (m.carrera || '').toUpperCase() === carreraEstudiante)
-            .map((m: any) => (m.nombre || '').toUpperCase());
-        }
-      } catch (e) { console.error("Error", e); }
-    }
-
-    for (let tutor of todosLosTutores) {
-      if (this.esCoordinadorPanel) {
-        if (this.filtroSedeAgenda !== 'GLOBAL' && (tutor['sede'] || '').toUpperCase() !== this.filtroSedeAgenda) continue; 
+    try {
+      const catalogos = await this.dbService.obtenerCatalogosDesdeExcel();
+      if (catalogos && catalogos.materias) {
+        catalogos.materias.forEach((m: any) => {
+          const nombreMat = String(m.nombre || '').toUpperCase().trim();
+          if (nombreMat) {
+            setCatalogoGeneral.add(nombreMat);
+          }
+          if ((m.carrera || '').toUpperCase() === carreraEstudiante && nombreMat) {
+            materiasPermitidas.push(nombreMat);
+          }
+        });
       }
-      let materiasDelTutor: string[] = [];
-      if (Array.isArray(tutor['materias'])) materiasDelTutor = tutor['materias'].map((m: string) => m.toUpperCase());
-      else if (typeof tutor['materias'] === 'string') materiasDelTutor = tutor['materias'].split(',').map((m: string) => m.trim().toUpperCase());
-
-      if (!this.esCoordinadorPanel) materiasDelTutor = materiasDelTutor.filter(m => materiasPermitidas.includes(m));
-      if (materiasDelTutor.length === 0 && !this.esCoordinadorPanel) continue;
-
-      tutor['materiasFiltradas'] = materiasDelTutor;
-      tutoresProcesados.push(tutor);
+    } catch (e) {
+      console.error("Error cargando catálogos:", e);
     }
 
-    this.agruparPorMateria(tutoresProcesados, this.sedeUsuario, this.esCoordinadorPanel);
+    // Agregar también las materias registradas por tutores activos para garantizar cobertura total
+    todosLosTutores.forEach(t => {
+      let mats: string[] = [];
+      if (Array.isArray(t['materias'])) mats = t['materias'];
+      else if (typeof t['materias'] === 'string') mats = t['materias'].split(',');
+      mats.forEach(m => {
+        const limpia = String(m || '').toUpperCase().trim();
+        if (limpia) setCatalogoGeneral.add(limpia);
+      });
+    });
+
+    this.catalogoGeneralMaterias = Array.from(setCatalogoGeneral).sort((a, b) => a.localeCompare(b));
+    this.materiasPermitidasCarreraCache = materiasPermitidas;
+
+    this.reconstruirAgrupacionMaterias();
     this.cargando = false;
     
     const guiaVista = localStorage.getItem('guia_horarios_vista');
@@ -317,6 +335,44 @@ export class HorariosPage implements OnInit {
     
     await this.verificarEvaluacionesPendientes();
     this.docentesExcel = await this.dbService.obtenerDocentesDesdeExcel(this.sedeUsuario);
+  }
+
+  // 🌟 PUNTO #13: Construye la lista de tutores según malla o catálogo general completo
+  reconstruirAgrupacionMaterias() {
+    const tutoresProcesados: any[] = [];
+    const mostrarTodas = this.esCoordinadorPanel || this.verTodasLasMateriasCatalogo;
+
+    for (const tutor of this.todosLosTutoresActivosCache) {
+      if (this.esCoordinadorPanel) {
+        if (this.filtroSedeAgenda !== 'GLOBAL' && (tutor['sede'] || '').toUpperCase() !== this.filtroSedeAgenda) continue; 
+      }
+
+      let materiasDelTutor: string[] = [];
+      if (Array.isArray(tutor['materias'])) {
+        materiasDelTutor = tutor['materias'].map((m: string) => m.toUpperCase().trim());
+      } else if (typeof tutor['materias'] === 'string') {
+        materiasDelTutor = tutor['materias'].split(',').map((m: string) => m.trim().toUpperCase());
+      }
+
+      if (!mostrarTodas) {
+        materiasDelTutor = materiasDelTutor.filter(m => this.materiasPermitidasCarreraCache.includes(m));
+      }
+
+      if (materiasDelTutor.length === 0 && !this.esCoordinadorPanel) continue;
+
+      tutor['materiasFiltradas'] = materiasDelTutor;
+      tutoresProcesados.push(tutor);
+    }
+
+    this.agruparPorMateria(tutoresProcesados, this.sedeUsuario, this.esCoordinadorPanel);
+    if (this.textoBusqueda && this.textoBusqueda.trim() !== '') {
+      this.filtrar();
+    }
+  }
+
+  alternarCatalogoGeneralHorarios() {
+    this.verTodasLasMateriasCatalogo = !this.verTodasLasMateriasCatalogo;
+    this.reconstruirAgrupacionMaterias();
   }
 
   abrirMenuRol(evento: any) { this.eventoRol = evento; this.menuRolAbierto = true; }
@@ -456,7 +512,8 @@ export class HorariosPage implements OnInit {
       const coincideMateria = materiaLimpia.includes(busquedaLimpia);
       const coincideTutor = bloque.tutores.some((t: any) => {
         const tutorLimpio = this.limpiarTexto(t.nombre || '');
-        return tutorLimpio.includes(busquedaLimpia);
+        const carreraLimpia = this.limpiarTexto(t.carrera || '');
+        return tutorLimpio.includes(busquedaLimpia) || carreraLimpia.includes(busquedaLimpia);
       });
       return coincideMateria || coincideTutor;
     });
@@ -485,6 +542,12 @@ export class HorariosPage implements OnInit {
     this.fechaExactaTutoria = this.obtenerFechaMasProxima(dia); 
     this.fechasPermitidasNormal = this.calcularFechasPermitidas(dia);
 
+    // 🌟 PUNTO #13: Inicializar asignatura original y selector de catálogo general
+    this.materiaOriginalTabla = materia;
+    this.cambiarMateriaCatalogo = false;
+    this.busquedaMateriaCatalogo = '';
+    this.materiasCatalogoFiltradas = [];
+
     this.reservaActual = { 
       tutorNombre: tutor.nombre, 
       correoTutor: tutor.correo || tutor.correo_google, 
@@ -493,9 +556,52 @@ export class HorariosPage implements OnInit {
       tutorSede: (tutor.sede || 'NO DEFINIDA').toUpperCase(), 
       dia: dia, 
       horas: horas, 
-      materia: materia 
+      materia: materia,
+      materiaOriginal: materia
     }; 
     this.mostrarModal = true; 
+  }
+
+  // 🌟 PUNTO #13: Métodos del selector de otras asignaturas del catálogo general
+  activarSelectorCatalogoGeneral() {
+    this.cambiarMateriaCatalogo = true;
+    this.busquedaMateriaCatalogo = '';
+    this.materiasCatalogoFiltradas = this.catalogoGeneralMaterias.slice(0, 8);
+  }
+
+  cancelarSelectorCatalogoGeneral() {
+    this.cambiarMateriaCatalogo = false;
+    this.busquedaMateriaCatalogo = '';
+    this.materiasCatalogoFiltradas = [];
+  }
+
+  filtrarMateriasCatalogoGeneral() {
+    const txt = this.limpiarTexto(this.busquedaMateriaCatalogo);
+    if (!txt) {
+      this.materiasCatalogoFiltradas = this.catalogoGeneralMaterias.slice(0, 8);
+      return;
+    }
+    this.materiasCatalogoFiltradas = this.catalogoGeneralMaterias
+      .filter(m => this.limpiarTexto(m).includes(txt))
+      .slice(0, 8);
+  }
+
+  seleccionarMateriaCatalogoGeneral(materiaElegida: string) {
+    if (this.reservaActual) {
+      this.reservaActual.materia = materiaElegida;
+    }
+    this.busquedaMateriaCatalogo = materiaElegida;
+    this.materiasCatalogoFiltradas = [];
+    this.cambiarMateriaCatalogo = false;
+  }
+
+  restaurarMateriaOriginalTabla() {
+    if (this.reservaActual && this.materiaOriginalTabla) {
+      this.reservaActual.materia = this.materiaOriginalTabla;
+    }
+    this.busquedaMateriaCatalogo = '';
+    this.materiasCatalogoFiltradas = [];
+    this.cambiarMateriaCatalogo = false;
   }
 
   actualizarOpcionesModalidad() {
@@ -531,6 +637,10 @@ export class HorariosPage implements OnInit {
     this.modalidadElegida = '';
     this.opcionesModalidad = [];
     this.tipoTutoriaSeleccionada = '';
+    this.cambiarMateriaCatalogo = false;
+    this.busquedaMateriaCatalogo = '';
+    this.materiasCatalogoFiltradas = [];
+    this.materiaOriginalTabla = '';
   }
 
   calcularDuracionHoras(rangoHora: string): number {
@@ -545,9 +655,34 @@ export class HorariosPage implements OnInit {
     return (finMin - inicioMin) / 60;
   }
 
-async confirmarReserva(): Promise<boolean> {
+  async confirmarReserva(): Promise<boolean> {
     if (this.enviandoReserva) return false; 
     if (!this.reservaActual) return false;
+
+    // 🌟 PUNTO #13: Validar si dejó abierto el buscador de catálogo general
+    if (this.cambiarMateriaCatalogo) {
+      const escritoLimpio = this.limpiarTexto(this.busquedaMateriaCatalogo);
+      if (escritoLimpio !== '') {
+        const coincidenciaExacta = this.catalogoGeneralMaterias.find(
+          m => this.limpiarTexto(m) === escritoLimpio
+        );
+        if (coincidenciaExacta) {
+          this.reservaActual.materia = coincidenciaExacta;
+          this.cambiarMateriaCatalogo = false;
+        } else {
+          this.mostrarAviso('Selecciona una asignatura válida de la lista del catálogo general.', 'advertencia');
+          return false;
+        }
+      } else {
+        this.cambiarMateriaCatalogo = false;
+      }
+    }
+
+    if (!this.reservaActual.materia) {
+      this.mostrarAviso('Por favor, selecciona la asignatura a cubrir.', 'advertencia');
+      return false;
+    }
+
     if (!this.horaSeleccionada) { this.mostrarAviso('Por favor, selecciona una hora específica para la tutoría.', 'advertencia'); return false; }
     if (this.opcionesModalidad.length > 1 && !this.modalidadElegida) { this.mostrarAviso('Por favor, selecciona la modalidad de la tutoría.', 'advertencia'); return false; }
     if (!this.tipoTutoriaSeleccionada) { this.mostrarAviso('Por favor, indica el tipo de tutoría que necesitas.', 'advertencia'); return false; }
@@ -557,7 +692,6 @@ async confirmarReserva(): Promise<boolean> {
     const horaLimpia = this.horaSeleccionada.split('(')[0].trim();
     const fechaCorta = this.fechaExactaTutoria.split('T')[0];
 
-    // Validación de máximo 3 horas (aplica a agendamiento normal y Match Automático)
     const duracionHoras = this.calcularDuracionHoras(horaLimpia);
     if (duracionHoras > 3) {
       this.mostrarAviso('El tiempo máximo permitido por tutoría es de 3 horas.', 'advertencia');
@@ -593,17 +727,20 @@ async confirmarReserva(): Promise<boolean> {
       const codigoGenerado = this.dbService.generarCodigoTutoria(this.reservaActual.materia);
       const snapshotReserva = { ...this.reservaActual };
       const modalidadFinal = this.modalidadElegida;
+      const esMateriaCubierta = snapshotReserva.materiaOriginal && snapshotReserva.materia !== snapshotReserva.materiaOriginal;
 
       const datosReserva = {
         correoEstudiante: correoLimpio,
         nombreEstudiante: this.nombreUsuario,
         celularEstudiante: localStorage.getItem('celular') || 'No registrado',
         codigoPaisEstudiante: localStorage.getItem('codigo_pais') || '+593', 
+        sedeEstudiante: this.sedeUsuario,
         correoTutor: String(snapshotReserva.correoTutor || '').toLowerCase().trim(),
         nombreTutor: snapshotReserva.tutorNombre,
         celularTutor: snapshotReserva.celularTutor || 'No registrado',
         codigoPaisTutor: snapshotReserva.codigoPaisTutor || '+593', 
         materia: snapshotReserva.materia,
+        materia_tutor_origen: esMateriaCubierta ? snapshotReserva.materiaOriginal : snapshotReserva.materia,
         dia_elegido: snapshotReserva.dia,
         hora_elegida: horaLimpia, 
         duracion_horas: duracionHoras,
@@ -620,9 +757,13 @@ async confirmarReserva(): Promise<boolean> {
 
       try {
         if (this.dbService.crearNotificacion) {
+          const detalleMateriaNoti = esMateriaCubierta
+            ? `${snapshotReserva.materia} (cubierta desde ${snapshotReserva.materiaOriginal})`
+            : snapshotReserva.materia;
+
           await this.dbService.crearNotificacion({
             titulo: 'Nueva Solicitud de Tutoría',
-            mensaje: `${this.nombreUsuario} ha solicitado una tutoria ${modalidadFinal} de ${snapshotReserva.materia} el ${fechaCorta} a las ${horaLimpia}.`, 
+            mensaje: `${this.nombreUsuario} ha solicitado una tutoria ${modalidadFinal} de ${detalleMateriaNoti} el ${fechaCorta} a las ${horaLimpia}.`, 
             tipo: 'TUTORIA',
             correo_destino: String(snapshotReserva.correoTutor || '').toLowerCase().trim(),
             sede_destino: 'GLOBAL',
@@ -634,12 +775,12 @@ async confirmarReserva(): Promise<boolean> {
       this.cerrarConfirmacion();
       this.mostrarAviso('¡Tutoría agendada con éxito! Revisa la pestaña de Mis Tutorías.', 'exito');
 
-      // Mensaje automático a WhatsApp (Normal y Match Automático)
       this.abrirWhatsAppConfirmacion({
         celularTutor: snapshotReserva.celularTutor,
         codigoPaisTutor: snapshotReserva.codigoPaisTutor,
         nombreTutor: snapshotReserva.tutorNombre,
         materia: snapshotReserva.materia,
+        materiaOrigen: esMateriaCubierta ? snapshotReserva.materiaOriginal : undefined,
         fecha: fechaCorta,
         dia: snapshotReserva.dia,
         hora: horaLimpia,
@@ -671,6 +812,7 @@ async confirmarReserva(): Promise<boolean> {
     codigoPaisTutor: string;
     nombreTutor: string;
     materia: string;
+    materiaOrigen?: string;
     fecha: string;
     dia: string;
     hora: string;
@@ -682,10 +824,13 @@ async confirmarReserva(): Promise<boolean> {
 
     const prefijoPais = (datos.codigoPaisTutor || '+593').replace(/\D/g, '') || '593';
     const telefonoCompleto = numeroLimpio.startsWith(prefijoPais) ? numeroLimpio : `${prefijoPais}${numeroLimpio}`;
+    const textoMateriaWA = datos.materiaOrigen
+      ? `${datos.materia} _(cubierta desde ${datos.materiaOrigen})_`
+      : datos.materia;
 
     const mensaje =
       `Hola *${datos.nombreTutor}*, soy *${this.nombreUsuario}*. Acabo de agendar una tutoría contigo en la plataforma GIETAES:\n\n` +
-      `📚 *Materia:* ${datos.materia}\n` +
+      `📚 *Materia:* ${textoMateriaWA}\n` +
       `📅 *Fecha:* ${datos.fecha} (${datos.dia})\n` +
       `⏰ *Hora:* ${datos.hora}\n` +
       `📍 *Modalidad:* ${datos.modalidad}\n` +
@@ -932,6 +1077,7 @@ async confirmarReserva(): Promise<boolean> {
       dia: this.diaInteligente,
       horas: this.horaInteligente,
       materia: this.materiaInteligente,
+      materiaOriginal: this.materiaInteligente,
       tipo_derivacion: this.tipoDerivacion,
       docente: this.docenteBuscado
     };

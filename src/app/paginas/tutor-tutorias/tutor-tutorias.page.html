@@ -32,7 +32,7 @@
 <ion-content class="fondo-app">
   <div class="ion-padding" style="padding-bottom: 200px;">
     
-    <!-- CABECERA CON BOTÓN DE REGISTRO MANUAL ESPONTÁNEO (PUNTO #12) -->
+    <!-- CABECERA CON BOTÓN DE REGISTRO MANUAL ESPONTÁNEO -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
       <h2 class="titulo-azul" style="margin: 0;">TUTORÍAS A IMPARTIR:</h2>
       <ion-button (click)="abrirModalManual()" size="small" style="--background: #003366; --color: #EAB308; font-weight: 900; --border-radius: 10px; height: 36px;">
@@ -79,10 +79,11 @@
           <div class="tarjeta-azul" style="width: 100%; margin: 0; border-left: 5px solid #EAB308;">
             <div class="icono-blanco" style="color: #003366;"><ion-icon name="person-outline"></ion-icon></div>
             <div class="info-texto">
+              <!-- 🌟 PUNTO #1: MATERIA + ETIQUETA TIPO DE TUTORÍA -->
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
                 <h3 style="font-size: 1.1rem; margin: 0;">{{ t.materia }}</h3>
-                <span *ngIf="t.tipo_flujo === 'PROCESO'" style="background: #10b981; color: #ffffff; font-size: 0.65rem; font-weight: 900; padding: 2px 7px; border-radius: 10px;">
-                  PROCESO
+                <span [ngStyle]="obtenerEstiloTipoTutoria(t.tipo_tutoria)" style="font-size: 0.65rem; font-weight: 900; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.4px;">
+                  {{ formatearTipoTutoria(t.tipo_tutoria) }}
                 </span>
               </div>
               
@@ -115,7 +116,7 @@
                 CÓDIGO GRUPAL: {{ t.codigo }}
               </p>
 
-              <!-- BOTONES DE ACCIÓN (ASISTENCIA + REPROGRAMAR PUNTO #6) -->
+              <!-- BOTONES DE ACCIÓN -->
               <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
                 <ion-button *ngIf="t.estado === 'CONFIRMADA' || t.estado === 'ACEPTADA'" fill="solid" size="small" (click)="irATomarAsistencia(t)" style="--background: #EAB308; --color: #003366; font-weight: 900; --border-radius: 6px; height: 32px;">
                   <ion-icon name="document-text-outline" slot="start"></ion-icon>
@@ -129,7 +130,7 @@
               </div>
 
               <p *ngIf="t.estado === 'PENDIENTE'" style="font-size: 0.72rem; color: #fde047; font-style: italic; font-weight: bold; margin-top: 6px;">
-                * Confirme la tutoría para habilitar la asistencia.
+                - Confirme la tutoría para habilitar la asistencia.
               </p>
             </div>
             
@@ -189,9 +190,7 @@
 
   </div>
 
-<!-- ========================================================= -->
-  <!-- MODAL PUNTO #12: REGISTRO MANUAL ESPONTÁNEO DE TUTORÍA    -->
-  <!-- ========================================================= -->
+  <!-- MODAL: REGISTRO MANUAL ESPONTÁNEO DE TUTORÍA -->
   <ion-modal [isOpen]="mostrarModalManual" (didDismiss)="mostrarModalManual = false">
     <ng-template>
       <div style="background: #003366; padding: 18px 15px; display: flex; justify-content: space-between; align-items: center;">
@@ -216,7 +215,6 @@
                    placeholder="Escribe nombre o cédula..."
                    style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.9rem;">
             
-            <!-- Sugerencias -->
             <div *ngIf="estudiantesFiltradosManual.length > 0" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; margin-top: 4px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
               <div *ngFor="let est of estudiantesFiltradosManual" (click)="seleccionarEstudianteManual(est)"
                    style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer;">
@@ -225,7 +223,6 @@
               </div>
             </div>
 
-            <!-- Estudiante seleccionado -->
             <div *ngIf="formManual.correoEstudiante" style="margin-top: 8px; background: rgba(16, 185, 129, 0.12); border: 1px solid #10b981; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <p style="margin: 0; font-weight: 900; color: #065f46; font-size: 0.85rem;">{{ formManual.nombreEstudiante }}</p>
@@ -303,7 +300,7 @@
             </select>
           </div>
 
-          <!-- 8. DOCENTE DE CÁTEDRA (AUTOCOMPLETADO DESDE EXCEL) -->
+          <!-- 8. DOCENTE DE CÁTEDRA -->
           <div>
             <label style="font-weight: 800; color: #003366; font-size: 0.85rem; display: block; margin-bottom: 6px;">
               8. Docente de la Materia (Buscar en catálogo)
@@ -335,9 +332,8 @@
       </div>
     </ng-template>
   </ion-modal>
-  <!-- ========================================================= -->
-  <!-- MODAL PUNTO #6: REPROGRAMAR FECHA / HORA + NOTIFICACIÓN   -->
-  <!-- ========================================================= -->
+
+  <!-- MODAL: REPROGRAMAR FECHA / HORA + NOTIFICACIÓN -->
   <ion-modal [isOpen]="mostrarModalReprogramar" (didDismiss)="mostrarModalReprogramar = false">
     <ng-template>
       <div style="background: #003366; padding: 18px 15px; display: flex; justify-content: space-between; align-items: center;">
@@ -508,7 +504,7 @@
               <div class="btn-modalidad" [class.activo]="modalidadGlobal === 'AMBAS'" (click)="seleccionarModalidadGlobal('AMBAS')">Ambas</div>
             </div>
             <p style="font-size: 0.75rem; color: #d97706; font-weight: bold; margin: 15px 0 10px 0;">
-              * Toca los cuadros para asignar tu horario. Sábados obligatoriamente VIRTUAL.
+              - Toca los cuadros para asignar tu horario. Sábados obligatoriamente VIRTUAL.
             </p>
             <div class="calendario-scroll">
               <table class="tabla-horarios">

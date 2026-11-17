@@ -69,7 +69,13 @@
               <ion-icon [name]="t.estado === 'REQUIERE_ADMIN' ? 'search-outline' : 'book-outline'"></ion-icon>
             </div>
             <div class="info-texto">
-              <h3>{{ t.materia }} <span *ngIf="t.codigo && t.codigo !== 'SIN CÓDIGO'">( {{ t.codigo }} )</span></h3>
+              <!-- 🌟 PUNTO #1: MATERIA + ETIQUETA TIPO DE TUTORÍA -->
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
+                <h3 style="margin: 0;">{{ t.materia }} <span *ngIf="t.codigo && t.codigo !== 'SIN CÓDIGO'">( {{ t.codigo }} )</span></h3>
+                <span [ngStyle]="obtenerEstiloTipoTutoria(t.tipo_tutoria)" style="font-size: 0.65rem; font-weight: 900; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.4px;">
+                  {{ formatearTipoTutoria(t.tipo_tutoria) }}
+                </span>
+              </div>
               
               <p style="color: #EAB308; font-weight: 900; font-size: 0.85rem; margin: 5px 0;">
                 <ion-icon name="person-circle-outline" style="vertical-align: middle;"></ion-icon> 

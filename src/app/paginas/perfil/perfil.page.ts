@@ -56,7 +56,6 @@ export class PerfilPage implements OnInit {
   totalTutorias: number = 0;
   totalHorasEstudiante: number = 0;
 
-  // 🌟 PUNTO #16: Selector de período académico e histórico
   filtroPeriodo: string = '';
   periodoActualApp: string = '';
   listaPeriodos: string[] = [];
@@ -177,46 +176,53 @@ export class PerfilPage implements OnInit {
   async cerrarSesion() { this.menuPerfilAbierto = false; try { await signOut(this.auth); localStorage.clear(); this.navCtrl.navigateRoot('/login'); } catch (error) { localStorage.clear(); this.navCtrl.navigateRoot('/login'); } }
 
   // ==========================================================================
-  // 🌟 PUNTO #16: ESTADÍSTICAS DEL ESTUDIANTE FILTRADAS POR PERÍODO / HISTÓRICO
+  // 🌟 PUNTO #5: SOLO TUTORÍAS EFECTIVAMENTE RECIBIDAS (ASISTENCIAS)
   // ==========================================================================
   async cargarEstadisticasEstudiante() {
     try {
       const correoLimpio = this.usuario.correo.toLowerCase().trim();
+      const cedula = (localStorage.getItem('cedula') || '').trim();
+      const nombre = (localStorage.getItem('nombre') || this.usuario.nombre || '').trim();
 
-      // Consultamos tanto Asistencias (impartidas) como Reservas (agendadas/confirmadas)
-      const [snapAsistencias, snapReservas] = await Promise.all([
-        getDocs(query(collection(this.firestore, 'Asistencias'), where('correo_estudiante', '==', correoLimpio))),
-        getDocs(query(collection(this.firestore, 'Reservas'), where('correoEstudiante', '==', correoLimpio)))
-      ]);
+      const consultas: Promise<any>[] = [
+        getDocs(query(collection(this.firestore, 'Asistencias'), where('correo_estudiante', '==', correoLimpio)))
+      ];
+
+      if (nombre && cedula) {
+        consultas.push(
+          getDocs(query(collection(this.firestore, 'Asistencias'), where('estudiante_info', '==', `${nombre}\n${cedula}`))),
+          getDocs(query(collection(this.firestore, 'Asistencias'), where('estudiante_info', '==', `${nombre} - ${cedula}`)))
+        );
+      }
+
+      const resultados = await Promise.all(consultas);
+      const docsUnicos = new Map<string, any>();
+
+      resultados.forEach(snap => {
+        snap.forEach((docSnap: any) => {
+          if (!docsUnicos.has(docSnap.id)) {
+            docsUnicos.set(docSnap.id, docSnap.data());
+          }
+        });
+      });
 
       const periodosSet = new Set<string>();
       if (this.periodoActualApp) periodosSet.add(this.periodoActualApp);
 
       const registros: { materia: string; periodo: string; minutos: number }[] = [];
 
-      snapAsistencias.forEach(d => {
-        const data = d.data();
+      docsUnicos.forEach(data => {
+        const asistio = String(data['asistio'] || 'SI').toUpperCase().trim();
+        if (asistio === 'NO' || asistio === 'FALSE') return;
+
         const per = String(data['periodo'] || this.periodoActualApp || '').trim();
         if (per) periodosSet.add(per);
+
         const mins = (Number(data['horas_duracion'] || 0) * 60) + Number(data['minutos_duracion'] || 0);
         registros.push({
           materia: data['materia'] || 'Otra',
           periodo: per,
           minutos: mins > 0 ? mins : 60
-        });
-      });
-
-      snapReservas.forEach(d => {
-        const data = d.data();
-        const estado = String(data['estado'] || '').toUpperCase();
-        if (estado === 'RECHAZADA' || estado === 'CANCELADA') return;
-        const per = String(data['periodo'] || this.periodoActualApp || '').trim();
-        if (per) periodosSet.add(per);
-        const mins = Number(data['duracion_horas'] || 1) * 60;
-        registros.push({
-          materia: data['materia'] || 'Otra',
-          periodo: per,
-          minutos: mins
         });
       });
 

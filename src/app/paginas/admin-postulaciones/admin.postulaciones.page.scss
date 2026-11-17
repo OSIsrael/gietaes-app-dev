@@ -257,6 +257,148 @@
 }
 
 /* ========================================== */
+/* 🌟 PUNTO #4: CELDA BLOQUEADA SÁBADO >= 13:00 */
+/* ========================================== */
+.celda-sabado-bloqueada {
+  width: 100%;
+  height: 35px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #e2e8f0,
+    #e2e8f0 6px,
+    #cbd5e1 6px,
+    #cbd5e1 12px
+  );
+  color: #64748b;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ========================================== */
+/* 🌟 PUNTOS #11 Y #14: CONTROL DE RESERVAS   */
+/* ========================================== */
+.card-control-reserva {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-left: 5px solid #003366;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(0, 51, 102, 0.04);
+}
+
+.badge-estado-reserva {
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &.estado-pendiente {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+  }
+
+  &.estado-confirmada {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+  }
+
+  &.estado-cancelada,
+  &.estado-rechazada,
+  &.estado-requiere_admin {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+  }
+}
+
+/* ========================================== */
+/* 🌟 PUNTO #15: TABLAS DE MÉTRICAS           */
+/* ========================================== */
+.tabla-metricas-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  max-height: 380px;
+}
+
+.tabla-metricas-gietaes {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  text-align: left;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #003366;
+    color: #ffffff;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.4px;
+    padding: 10px 10px;
+    border-bottom: 2px solid #EAB308;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+
+    &:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    &:hover {
+      background: #fefce8;
+    }
+  }
+
+  tbody td {
+    padding: 9px 10px;
+    color: #1e293b;
+    vertical-align: middle;
+  }
+}
+
+.pill-sede {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 800;
+  font-size: 0.68rem;
+  padding: 3px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.pill-estado {
+  font-weight: 900;
+  font-size: 0.68rem;
+  padding: 3px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+
+  &.activo {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  &.inactivo {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+}
+
+/* ========================================== */
 /* DASHBOARD Y FORMULARIOS */
 /* ========================================== */
 .charts-container {
@@ -361,6 +503,7 @@
   letter-spacing: 0.5px;
   height: 50px;
 }
+
 /* ========================================== */
 /* TARJETAS DE ALERTA SOS (REQUIERE ADMIN) */
 /* ========================================== */
@@ -381,7 +524,7 @@
     top: 0;
     bottom: 0;
     width: 6px;
-    background: #ef4444; /* Borde rojo lateral */
+    background: #ef4444;
   }
 
   .header-alerta {
@@ -428,7 +571,6 @@
   }
 }
 
-/* Color rojo para el botón de Dar de Baja en el AlertController */
 .btn-alerta-peligro {
   color: #ef4444 !important;
   font-weight: bold !important;

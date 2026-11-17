@@ -45,7 +45,10 @@
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <ion-icon name="person-circle" style="color: #EAB308; font-size: 1.8rem;"></ion-icon>
-            <h2 style="font-weight: 900; font-size: 0.9rem; color: #003366; margin: 0; white-space: pre-wrap;">{{ est.info }}</h2>
+            <div>
+              <h2 style="font-weight: 900; font-size: 0.9rem; color: #003366; margin: 0; white-space: pre-wrap;">{{ est.info }}</h2>
+              <span *ngIf="est.sede" style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Sede: {{ est.sede }}</span>
+            </div>
           </div>
           <ion-button fill="clear" color="danger" (click)="removerEstudiante(i)" *ngIf="!tutoriaPreCargada">
             <ion-icon name="close-circle" slot="icon-only"></ion-icon>
@@ -56,7 +59,7 @@
           <div style="flex: 1;">
             <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">¿Asistió?</label>
             <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; --min-height: 35px;">
-              <ion-select [(ngModel)]="est.asistio" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
+              <ion-select [(ngModel)]="est.asistio" (ionChange)="alCambiarAsistenciaEstudiante()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
                 <ion-select-option value="SI">SÍ</ion-select-option>
                 <ion-select-option value="NO">NO</ion-select-option>
               </ion-select>
@@ -95,7 +98,7 @@
     <div style="margin-top: 25px;" *ngIf="estudiantesInvitados.length > 0">
       <h3 style="color: #003366; font-size: 1rem; margin-bottom: 10px; font-weight: 900;">2. Invitados (Unidos por código):</h3>
       <p style="color: #ef4444; font-size: 0.75rem; font-style: italic; margin-top: -5px; font-weight: bold;">
-        * Verifica el docente y la derivación de cada invitado.
+        - Verifica el docente y la derivación de cada invitado.
       </p>
 
       <div *ngFor="let invitado of estudiantesInvitados" class="alumno-card-asistencia invitado">
@@ -103,7 +106,10 @@
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <ion-icon name="people-outline" style="color: #64748b; font-size: 1.5rem;"></ion-icon>
-            <h2 style="font-weight: 800; font-size: 0.85rem; color: #475569; margin: 0;">{{ invitado.info }}</h2>
+            <div>
+              <h2 style="font-weight: 800; font-size: 0.85rem; color: #475569; margin: 0;">{{ invitado.info }}</h2>
+              <span *ngIf="invitado.sede" style="font-size: 0.7rem; color: #64748b; font-weight: 700;">Sede: {{ invitado.sede }}</span>
+            </div>
           </div>
         </div>
 
@@ -111,7 +117,7 @@
           <div style="flex: 1;">
             <label style="color: #64748b; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">¿Asistió?</label>
             <ion-item lines="none" style="--background: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 3px; --min-height: 35px;">
-              <ion-select [(ngModel)]="invitado.asistio" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
+              <ion-select [(ngModel)]="invitado.asistio" (ionChange)="alCambiarAsistenciaEstudiante()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold; font-size: 0.8rem;">
                 <ion-select-option value="SI">SÍ</ion-select-option>
                 <ion-select-option value="NO">NO</ion-select-option>
               </ion-select>
@@ -177,8 +183,18 @@
       </div>
     </div>
 
-    <!-- DATOS DE LA TUTORIA -->
-    <div *ngIf="!cargando" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #cbd5e1; border-top: 4px solid #003366;">
+    <!-- 🌟 PUNTO #7: AVISO CUANDO NADIE ASISTIÓ -->
+    <div *ngIf="!cargando && todosAusentes" class="animate__animated animate__fadeIn" style="background: rgba(239, 68, 68, 0.08); border: 1.5px solid #ef4444; border-left: 5px solid #ef4444; border-radius: 12px; padding: 14px; margin-top: 22px;">
+      <p style="margin: 0; color: #991b1b; font-weight: 900; font-size: 0.88rem;">
+        Ningún estudiante asistió a la sesión
+      </p>
+      <p style="margin: 5px 0 0 0; color: #7f1d1d; font-size: 0.8rem; line-height: 1.4;">
+        Se han bloqueado y ocultado la duración y los datos de la sesión para registrar únicamente la inasistencia.
+      </p>
+    </div>
+
+    <!-- DATOS DE LA TUTORIA (Ocultos si todos están ausentes y la tutoría ya estaba precargada) -->
+    <div *ngIf="!cargando && (huboAsistencia || !tutoriaPreCargada)" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #cbd5e1; border-top: 4px solid #003366;">
       <h3 class="subtitulo-seccion" style="margin-top: 0; color: #003366; font-weight: 900;"><ion-icon name="book-outline"></ion-icon> Datos de la Tutoría</h3>
 
       <!-- SELECCIÓN DE MATERIA SI ES REGISTRO MANUAL -->
@@ -192,82 +208,89 @@
         </ion-item>
       </div>
 
-      <!-- TIPO DE TUTORÍA (PUNTO #5: CONSULTA vs PROCESO) -->
-      <div style="margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-        <label style="color: #64748b; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Tipo de Tutoría</label>
-        
-        <!-- Si viene precargada, muestra el badge + botón cambiar con motivo -->
-        <div *ngIf="tutoriaPreCargada" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-          <span style="font-weight: 900; color: #003366; font-size: 0.9rem;">{{ form.tipo_tutoria || 'CONSULTA' }}</span>
-          <ion-button fill="clear" size="small" (click)="solicitarCambioTipoTutoria()" style="--color: #003366;">
-            <ion-icon name="create-outline" slot="icon-only" style="font-size: 1.2rem;"></ion-icon>
-          </ion-button>
+      <!-- RESTO DE DATOS DE SESIÓN (SOLO SI HUBO ASISTENCIA - PUNTO #7) -->
+      <ng-container *ngIf="huboAsistencia">
+        <!-- TIPO DE TUTORÍA (PUNTO #5: CONSULTA vs PROCESO) -->
+        <div style="margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <label style="color: #64748b; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Tipo de Tutoría</label>
+          
+          <!-- Si viene precargada, muestra el badge + botón cambiar con motivo -->
+          <div *ngIf="tutoriaPreCargada" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span style="font-weight: 900; color: #003366; font-size: 0.9rem;">{{ form.tipo_tutoria || 'CONSULTA' }}</span>
+            <ion-button fill="clear" size="small" (click)="solicitarCambioTipoTutoria()" style="--color: #003366;">
+              <ion-icon name="create-outline" slot="icon-only" style="font-size: 1.2rem;"></ion-icon>
+            </ion-button>
+          </div>
+
+          <!-- Si NO viene precargada, selector directo -->
+          <ion-item *ngIf="!tutoriaPreCargada" lines="none" style="--background: #ffffff; border-radius: 6px; border: 1px solid #cbd5e1; --min-height: 38px;">
+            <ion-select [(ngModel)]="form.tipo_tutoria" (ionChange)="alCambiarTipoTutoriaDirecto()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: 900; font-size: 0.85rem;">
+              <ion-select-option value="CONSULTA">CONSULTA</ion-select-option>
+              <ion-select-option value="PROCESO">PROCESO</ion-select-option>
+              <ion-select-option value="PRÁCTICA">PRÁCTICA</ion-select-option>
+              <ion-select-option value="INTENSIVA">INTENSIVA</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <p *ngIf="form.motivo_cambio_tipo" style="font-size: 0.75rem; color: #d97706; margin: 5px 0 0 0; font-style: italic;">
+            Motivo cambio: {{ form.motivo_cambio_tipo }}
+          </p>
         </div>
 
-        <!-- Si NO viene precargada, selector directo -->
-        <ion-item *ngIf="!tutoriaPreCargada" lines="none" style="--background: #ffffff; border-radius: 6px; border: 1px solid #cbd5e1; --min-height: 38px;">
-          <ion-select [(ngModel)]="form.tipo_tutoria" (ionChange)="alCambiarTipoTutoriaDirecto()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: 900; font-size: 0.85rem;">
-            <ion-select-option value="CONSULTA">CONSULTA</ion-select-option>
-            <ion-select-option value="PROCESO">PROCESO</ion-select-option>
-            <ion-select-option value="PRÁCTICA">PRÁCTICA</ion-select-option>
-            <ion-select-option value="INTENSIVA">INTENSIVA</ion-select-option>
-          </ion-select>
+        <!-- ESPACIO FÍSICO / AULA -->
+        <div style="margin-bottom: 15px;" *ngIf="form.modalidad === 'Presencial' || form.modalidad === 'PRESENCIAL' || tutoriaPreCargada">
+          <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Espacio Físico Usado (Aula / Laboratorio)</label>
+          <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; margin-top: 5px; border: 1px solid #e2e8f0;">
+            <ion-icon slot="start" name="business-outline" style="color: #003366;"></ion-icon>
+            <ion-input [(ngModel)]="form.espacio_fisico" placeholder="Ej: Aula 102, Biblioteca, Lab de Redes..."></ion-input>
+          </ion-item>
+        </div>
+
+        <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Tema Impartido</label>
+        <ion-item lines="none" class="input-moderno mb-3 textarea-moderno" style="--background: #f8fafc; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+          <ion-icon slot="start" name="document-text-outline" style="color: #003366; margin-top: 15px;"></ion-icon>
+          <ion-textarea [(ngModel)]="form.tema_tratado" rows="2" placeholder="Ej: Vectores en R3..."></ion-textarea>
         </ion-item>
 
-        <p *ngIf="form.motivo_cambio_tipo" style="font-size: 0.75rem; color: #d97706; margin: 5px 0 0 0; font-style: italic;">
-          Motivo cambio: {{ form.motivo_cambio_tipo }}
+        <!-- DURACIÓN (PUNTO #3: MÍNIMO > 0h 0min) -->
+        <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Duración de la Sesión</label>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; margin-top: 5px;">
+          <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
+            <ion-icon slot="start" name="time-outline" style="color: #003366;"></ion-icon>
+            <ion-select [(ngModel)]="form.horas_duracion" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold;">
+              <ion-select-option [value]="0">0 horas</ion-select-option>
+              <ion-select-option [value]="1">1 hora</ion-select-option>
+              <ion-select-option [value]="2">2 horas</ion-select-option>
+              <ion-select-option [value]="3">3 horas</ion-select-option>
+              <ion-select-option [value]="4">4 horas</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
+            <ion-select [(ngModel)]="form.minutos_duracion" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold;">
+              <ion-select-option [value]="0">0 min</ion-select-option>
+              <ion-select-option [value]="15">15 min</ion-select-option>
+              <ion-select-option [value]="30">30 min</ion-select-option>
+              <ion-select-option [value]="45">45 min</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </div>
+
+        <p *ngIf="duracionEsCero" style="color: #ef4444; font-size: 0.75rem; font-weight: 800; margin: -8px 0 12px 0;">
+          La duración debe ser mayor a 0 horas y 0 minutos.
         </p>
-      </div>
 
-      <!-- ESPACIO FÍSICO / AULA -->
-      <div style="margin-bottom: 15px;" *ngIf="form.modalidad === 'Presencial' || form.modalidad === 'PRESENCIAL' || tutoriaPreCargada">
-        <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Espacio Físico Usado (Aula / Laboratorio)</label>
-        <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; margin-top: 5px; border: 1px solid #e2e8f0;">
-          <ion-icon slot="start" name="business-outline" style="color: #003366;"></ion-icon>
-          <ion-input [(ngModel)]="form.espacio_fisico" placeholder="Ej: Aula 102, Biblioteca, Lab de Redes..."></ion-input>
-        </ion-item>
-      </div>
-
-      <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Tema Impartido</label>
-      <ion-item lines="none" class="input-moderno mb-3 textarea-moderno" style="--background: #f8fafc; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
-        <ion-icon slot="start" name="document-text-outline" style="color: #003366; margin-top: 15px;"></ion-icon>
-        <ion-textarea [(ngModel)]="form.tema_tratado" rows="2" placeholder="Ej: Vectores en R3..."></ion-textarea>
-      </ion-item>
-
-      <!-- DURACIÓN -->
-      <label style="color: #64748b; font-size: 0.8rem; font-weight: bold;">Duración de la Sesión</label>
-      <div style="display: flex; gap: 10px; margin-bottom: 15px; margin-top: 5px;">
-        <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
-          <ion-icon slot="start" name="time-outline" style="color: #003366;"></ion-icon>
-          <ion-select [(ngModel)]="form.horas_duracion" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold;">
-            <ion-select-option [value]="0">0 horas</ion-select-option>
-            <ion-select-option [value]="1">1 hora</ion-select-option>
-            <ion-select-option [value]="2">2 horas</ion-select-option>
-            <ion-select-option [value]="3">3 horas</ion-select-option>
-            <ion-select-option [value]="4">4 horas</ion-select-option>
-          </ion-select>
-        </ion-item>
-
-        <ion-item lines="none" class="input-moderno" style="--background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; flex: 1;">
-          <ion-select [(ngModel)]="form.minutos_duracion" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: bold;">
-            <ion-select-option [value]="0">0 min</ion-select-option>
-            <ion-select-option [value]="15">15 min</ion-select-option>
-            <ion-select-option [value]="30">30 min</ion-select-option>
-            <ion-select-option [value]="45">45 min</ion-select-option>
-          </ion-select>
-        </ion-item>
-      </div>
-
-      <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;" *ngIf="!tutoriaPreCargada">
-        <ion-item lines="none" class="input-moderno" style="flex: 1; height: 100%;">
-          <ion-icon slot="start" name="barcode-outline" style="color: #003366;"></ion-icon>
-          <ion-input [(ngModel)]="form.codigo_tutoria" placeholder="Código (Opcional)"></ion-input>
-        </ion-item>
-      </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;" *ngIf="!tutoriaPreCargada">
+          <ion-item lines="none" class="input-moderno" style="flex: 1; height: 100%;">
+            <ion-icon slot="start" name="barcode-outline" style="color: #003366;"></ion-icon>
+            <ion-input [(ngModel)]="form.codigo_tutoria" placeholder="Código (Opcional)"></ion-input>
+          </ion-item>
+        </div>
+      </ng-container>
     </div>
 
-    <!-- SEGUIMIENTO DE TUTORÍA DE PROCESO (PUNTO #5) -->
-    <div *ngIf="!cargando && form.tipo_tutoria === 'PROCESO'" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 16px; margin-top: 25px; box-shadow: 0 4px 10px rgba(0, 51, 102, 0.06); border: 1.5px solid #cbd5e1; border-top: 4px solid #003366;">
+    <!-- SEGUIMIENTO DE TUTORÍA DE PROCESO (SOLO SI HUBO ASISTENCIA - PUNTOS #5 y #7) -->
+    <div *ngIf="!cargando && huboAsistencia && form.tipo_tutoria === 'PROCESO'" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 16px; margin-top: 25px; box-shadow: 0 4px 10px rgba(0, 51, 102, 0.06); border: 1.5px solid #cbd5e1; border-top: 4px solid #003366;">
       <h3 class="subtitulo-seccion" style="margin-top: 0; color: #003366; font-weight: 900; display: flex; align-items: center; gap: 8px;">
         <ion-icon name="repeat-outline" style="color: #EAB308; font-size: 1.3rem;"></ion-icon> Seguimiento: Tutoría de Proceso
       </h3>
@@ -318,7 +341,7 @@
         </div>
 
         <p style="margin: 0; font-size: 0.75rem; color: #0f766e; font-weight: bold;">
-          * Aparecerá directamente como CONFIRMADA en el panel del estudiante y en tu agenda ("Este día nos volvemos a ver").
+          - Aparecerá directamente como CONFIRMADA en el panel del estudiante y en tu agenda ("Este día nos volvemos a ver").
         </p>
       </div>
 
@@ -338,8 +361,8 @@
       </div>
     </div>
 
-    <!-- EVALUACIÓN OBLIGATORIA DEL TUTOR -->
-    <div *ngIf="!cargando" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #cbd5e1; border-top: 4px solid #EAB308;">
+    <!-- EVALUACIÓN OBLIGATORIA DEL TUTOR (SOLO SI HUBO ASISTENCIA - PUNTO #7) -->
+    <div *ngIf="!cargando && huboAsistencia" class="tarjeta-formulario animate__animated animate__fadeIn mb-4" style="background: white; border-radius: 12px; padding: 15px; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #cbd5e1; border-top: 4px solid #EAB308;">
       <h3 class="subtitulo-seccion" style="margin-top: 0; color: #003366; font-weight: 900;">
         <ion-icon name="star"></ion-icon> Califica tu Experiencia
       </h3>
@@ -362,12 +385,12 @@
     
     <ion-button expand="block" class="btn-enviar mt-4" (click)="enviarRegistro()" [disabled]="enviando" style="margin-top: 25px; --background: #003366; --color: white; font-weight: 900; height: 50px; --border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 51, 102, 0.2);">
       <ion-icon slot="start" name="send-outline"></ion-icon>
-      {{ enviando ? 'Enviando Registro...' : 'Registrar Asistencia' }}
+      {{ enviando ? 'Enviando Registro...' : (todosAusentes ? 'Registrar Inasistencia' : 'Registrar Asistencia') }}
     </ion-button>
 
   </div>
 
-  <!-- MODAL DE AGENDAMIENTO DE PRÓXIMA SESIÓN -->
+  <!-- MODAL DE AGENDAMIENTO DE PRÓXIMA SESIÓN (PUNTOS #8, #9, #10) -->
   <ion-modal [isOpen]="mostrarModalProceso" (didDismiss)="cerrarModalProceso()" class="modal-gietaes-proceso">
     <ng-template>
       <div style="display: flex; flex-direction: column; background: #ffffff; height: 100%; color-scheme: light;">
@@ -385,30 +408,35 @@
 
         <div style="overflow-y: auto; padding: 18px; flex-grow: 1; background: #f8fafc;">
           
-          <label style="color: #003366; font-size: 0.78rem; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 8px;">
+          <!-- 🌟 PUNTO #9: SOLO FECHAS POSTERIORES A LA TUTORÍA ORIGINAL -->
+          <label style="color: #003366; font-size: 0.78rem; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 4px;">
             1. Selecciona la Fecha en el Calendario:
           </label>
+          <p *ngIf="fechaTutoriaOriginalISO" style="font-size: 0.72rem; color: #64748b; margin: 0 0 8px 0; font-weight: 700;">
+            Solo se permiten fechas posteriores al {{ formatearFechaCorta(fechaTutoriaOriginalISO) }}.
+          </p>
           <div style="background: #ffffff; border-radius: 12px; border: 1.5px solid #cbd5e1; padding: 8px; margin-bottom: 16px; display: flex; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <ion-datetime
               presentation="date"
               locale="es-ES"
               [value]="fechaSiguienteProceso"
-              [min]="fechaMinimaHoy"
+              [min]="fechaMinimaSiguienteProceso"
               [isDateEnabled]="fechasPermitidasProceso"
               (ionChange)="alCambiarFechaProceso($event)"
               style="--background: #ffffff; --title-color: #003366; color-scheme: light; width: 100%; max-width: 340px;">
             </ion-datetime>
           </div>
 
+          <!-- 🌟 PUNTO #8: VALIDACIÓN DE HORA FIN > HORA INICIO -->
           <label style="color: #003366; font-size: 0.78rem; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 6px;">
             2. Horario de la Siguiente Tutoría:
           </label>
-          <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <div style="display: flex; gap: 10px; margin-bottom: 10px;">
             <div style="flex: 1;">
               <span style="font-size: 0.7rem; color: #64748b; font-weight: 800; text-transform: uppercase;">Hora Inicio</span>
               <ion-item lines="none" style="--background: #ffffff; border-radius: 8px; border: 1.5px solid #cbd5e1; margin-top: 4px; --min-height: 42px;">
                 <ion-icon name="time-outline" slot="start" style="color: #003366; margin-right: 6px;"></ion-icon>
-                <ion-select [(ngModel)]="horaInicioProceso" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: 900; font-size: 0.85rem;">
+                <ion-select [(ngModel)]="horaInicioProceso" (ionChange)="alCambiarHoraInicioProceso()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: 900; font-size: 0.85rem;">
                   <ion-select-option *ngFor="let h of horasDisponiblesProceso" [value]="h">{{ h }}</ion-select-option>
                 </ion-select>
               </ion-item>
@@ -419,25 +447,32 @@
               <ion-item lines="none" style="--background: #ffffff; border-radius: 8px; border: 1.5px solid #cbd5e1; margin-top: 4px; --min-height: 42px;">
                 <ion-icon name="time-outline" slot="start" style="color: #003366; margin-right: 6px;"></ion-icon>
                 <ion-select [(ngModel)]="horaFinProceso" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco-gietaes' }" style="width: 100%; color: #003366; font-weight: 900; font-size: 0.85rem;">
-                  <ion-select-option *ngFor="let h of horasDisponiblesProceso" [value]="h">{{ h }}</ion-select-option>
+                  <ion-select-option *ngFor="let h of horasFinDisponiblesProceso" [value]="h">{{ h }}</ion-select-option>
                 </ion-select>
               </ion-item>
             </div>
           </div>
 
+          <p *ngIf="!horarioProcesoEsValido" style="color: #ef4444; font-size: 0.75rem; font-weight: 800; margin: 0 0 12px 0;">
+            La hora de fin debe ser mayor a la hora de inicio.
+          </p>
+
+          <!-- 🌟 PUNTO #10: BLOQUEAR PRESENCIAL Y FORZAR VIRTUAL SI HAY ESTUDIANTES DE OTRA SEDE -->
           <label style="color: #003366; font-size: 0.78rem; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 6px;">
             3. Modalidad de la Sesión:
           </label>
-          <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+          <div style="display: flex; gap: 10px; margin-bottom: 10px;">
             <div role="button"
-                 (click)="modalidadSiguienteProceso = 'Presencial'"
+                 (click)="seleccionarModalidadProceso('Presencial')"
                  [style.background]="modalidadSiguienteProceso === 'Presencial' ? '#003366' : '#ffffff'"
                  [style.color]="modalidadSiguienteProceso === 'Presencial' ? '#ffffff' : '#003366'"
-                 style="flex: 1; border: 1.5px solid #003366; border-radius: 8px; padding: 10px; text-align: center; font-weight: 900; font-size: 0.85rem; cursor: pointer;">
+                 [style.opacity]="hayEstudiantesOtraSede ? '0.45' : '1'"
+                 [style.cursor]="hayEstudiantesOtraSede ? 'not-allowed' : 'pointer'"
+                 style="flex: 1; border: 1.5px solid #003366; border-radius: 8px; padding: 10px; text-align: center; font-weight: 900; font-size: 0.85rem;">
               Presencial
             </div>
             <div role="button"
-                 (click)="modalidadSiguienteProceso = 'Virtual'"
+                 (click)="seleccionarModalidadProceso('Virtual')"
                  [style.background]="modalidadSiguienteProceso === 'Virtual' ? '#003366' : '#ffffff'"
                  [style.color]="modalidadSiguienteProceso === 'Virtual' ? '#ffffff' : '#003366'"
                  style="flex: 1; border: 1.5px solid #003366; border-radius: 8px; padding: 10px; text-align: center; font-weight: 900; font-size: 0.85rem; cursor: pointer;">
@@ -445,8 +480,14 @@
             </div>
           </div>
 
+          <div *ngIf="hayEstudiantesOtraSede" style="background: rgba(2, 132, 199, 0.1); border-left: 4px solid #0284c7; padding: 8px 10px; border-radius: 6px; margin-bottom: 8px;">
+            <p style="margin: 0; font-size: 0.74rem; color: #0369a1; font-weight: 800;">
+              Modalidad Presencial bloqueada: hay estudiantes de otra sede unidos a esta sesión. Se fuerza modalidad Virtual.
+            </p>
+          </div>
+
           <p style="font-size: 0.75rem; color: #d97706; font-weight: bold; margin: 4px 0 0 0;">
-            * Sábados obligatoriamente Virtual (máximo hasta las 13:00).
+            - Sábados obligatoriamente Virtual (máximo hasta las 13:00).
           </p>
         </div>
 
@@ -454,7 +495,7 @@
           <ion-button fill="outline" (click)="cerrarModalProceso()" style="flex: 1; --border-color: #cbd5e1; --color: #475569; font-weight: 800; --border-radius: 10px;">
             Cancelar
           </ion-button>
-          <ion-button (click)="confirmarDatosSiguienteSesion()" style="flex: 2; --background: #EAB308; --color: #003366; font-weight: 900; --border-radius: 10px;">
+          <ion-button (click)="confirmarDatosSiguienteSesion()" [disabled]="!horarioProcesoEsValido" style="flex: 2; --background: #EAB308; --color: #003366; font-weight: 900; --border-radius: 10px;">
             <ion-icon name="checkmark-outline" slot="start"></ion-icon>
             Confirmar Fecha y Hora
           </ion-button>

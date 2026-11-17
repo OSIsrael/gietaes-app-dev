@@ -17,7 +17,8 @@ import {
   filterOutline, locationOutline, callOutline, mailOutline, closeOutline, 
   checkmarkOutline, chevronDownOutline, chevronUpOutline, warning, calendarOutline, 
   logoWhatsapp, buildOutline, sadOutline, shieldCheckmarkOutline, briefcaseOutline, 
-  schoolOutline, settingsOutline, logOutOutline, notificationsOutline, peopleOutline, createOutline 
+  schoolOutline, settingsOutline, logOutOutline, notificationsOutline, peopleOutline, createOutline,
+  lockClosedOutline, searchOutline
 } from 'ionicons/icons';
 
 @Component({
@@ -46,12 +47,25 @@ export class AdminPostulacionesPage {
   
   sedeAdmin: string = ''; 
 
-  // 🌟 FILTROS DE BANDEJA (SEDE + PERÍODO + CARRERA)
+  // FILTROS DE BANDEJA (SEDE + PERÍODO + CARRERA)
   filtroSedePostulaciones: string = 'GLOBAL';
   filtroPeriodoPostulaciones: string = 'TODOS';
   filtroCarreraPostulaciones: string = 'TODAS';
 
-  // 🌟 FILTROS DE MÉTRICAS NUMÉRICAS (PUNTOS #15 y #16)
+  // 🌟 PUNTOS #11 Y #14: CONTROL DE TUTORÍAS SOLICITADAS (SEDE + ESTADO + BÚSQUEDA)
+  todasLasReservasControl: any[] = [];
+  reservasControlFiltradas: any[] = [];
+  filtroSedeReservas: string = 'GLOBAL';
+  filtroEstadoReservas: string = 'TODOS';
+  busquedaReservas: string = '';
+  conteoReservasPorEstado = {
+    total: 0,
+    pendientes: 0,
+    confirmadas: 0,
+    canceladas: 0
+  };
+
+  // 🌟 PUNTOS #15 Y #16: FILTROS DE MÉTRICAS NUMÉRICAS Y TABLAS DETALLADAS
   filtroSedeGraficas: string = 'GLOBAL';
   filtroPeriodoMetricas: string = 'TODOS';
   filtroCarreraMetricas: string = 'TODAS';
@@ -69,6 +83,15 @@ export class AdminPostulacionesPage {
     postulacionesPendientes: 0
   };
   desglosePorCarrera: { carrera: string; tutoresActivos: number; tutoriasImpartidas: number }[] = [];
+
+  // 🌟 PUNTO #15: TABLAS DETALLADAS DE TUTORES Y ESTUDIANTES
+  tablaTutoresMaster: any[] = [];
+  tablaTutoresFiltrada: any[] = [];
+  busquedaTablaTutores: string = '';
+
+  tablaEstudiantesMaster: any[] = [];
+  tablaEstudiantesFiltrada: any[] = [];
+  busquedaTablaEstudiantes: string = '';
   
   tutoriasEnAlerta: any[] = [];
   mostrarModalReasignacion: boolean = false;
@@ -117,9 +140,49 @@ export class AdminPostulacionesPage {
   diassemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   franjasHorarias = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '14:00 - 16:00', '16:00 - 18:00', '18:00 - 20:00', '20:00 - 22:00'];
 
+  // 🌟 PUNTO #4: Detectar franjas de sábado bloqueadas (>= 13:00)
+  esBloqueSabadoBloqueado(dia: string, franja: string): boolean {
+    const diaNorm = String(dia || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (diaNorm !== 'sabado') return false;
+
+    const horaInicioStr = String(franja || '').split('-')[0]?.trim() || '00:00';
+    const [hStr, mStr] = horaInicioStr.split(':');
+    const minutosInicio = (parseInt(hStr || '0', 10) * 60) + parseInt(mStr || '0', 10);
+    return minutosInicio >= 13 * 60;
+  }
+
+  // 🌟 PUNTO #4: Sanitizar mapa de horarios (eliminar sábados >= 13:00 y forzar VIRTUAL en sábados < 13:00)
+  sanitizarHorarioAdmin(horariosRaw: any): { [key: string]: string } {
+    const limpio: { [key: string]: string } = {};
+    if (!horariosRaw || typeof horariosRaw !== 'object') return limpio;
+
+    Object.keys(horariosRaw).forEach(clave => {
+      const dashIdx = clave.indexOf('-');
+      if (dashIdx === -1) {
+        limpio[clave] = horariosRaw[clave];
+        return;
+      }
+      const dia = clave.substring(0, dashIdx).trim();
+      const franja = clave.substring(dashIdx + 1).trim();
+      const diaNorm = dia.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+      if (this.esBloqueSabadoBloqueado(dia, franja)) {
+        return; // Bloqueado: no se incluye
+      }
+
+      if (diaNorm === 'sabado') {
+        limpio[clave] = 'VIRTUAL'; // Forzar modalidad Virtual los sábados
+      } else {
+        limpio[clave] = horariosRaw[clave];
+      }
+    });
+
+    return limpio;
+  }
+
   abrirModalEditarHorario(estudiante: any) {
     this.estudianteEditando = estudiante;
-    this.horarioTemporalAdmin = { ...estudiante.horarios }; 
+    this.horarioTemporalAdmin = this.sanitizarHorarioAdmin(estudiante.horarios || {});
     this.mostrarModalEditarHorario = true;
   }
 
@@ -128,19 +191,29 @@ export class AdminPostulacionesPage {
   }
 
   seleccionarBloqueAdmin(dia: string, franja: string) {
+    // 🌟 PUNTO #4: Bloquear sábados desde las 13:00
+    if (this.esBloqueSabadoBloqueado(dia, franja)) {
+      this.mostrarAviso('Los sábados están bloqueados a partir de las 13:00.', 'advertencia');
+      return;
+    }
+
     const clave = `${dia}-${franja}`;
     if (this.horarioTemporalAdmin[clave]) {
       delete this.horarioTemporalAdmin[clave];
     } else {
-      this.horarioTemporalAdmin[clave] = this.modalidadGlobalAdmin;
+      const diaNorm = dia.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      // 🌟 PUNTO #4: Forzar modalidad VIRTUAL en sábado
+      this.horarioTemporalAdmin[clave] = diaNorm === 'sabado' ? 'VIRTUAL' : this.modalidadGlobalAdmin;
     }
   }
 
   guardarHorarioEditado() {
+    const horarioSanitizado = this.sanitizarHorarioAdmin(this.horarioTemporalAdmin);
     if (this.estudianteEditando) {
-      this.estudianteEditando.horarios = { ...this.horarioTemporalAdmin };
+      this.estudianteEditando.horarios = { ...horarioSanitizado };
       this.estudianteEditando.materias_postuladas.forEach((postulacion: any) => {
-        postulacion.horarios = { ...this.horarioTemporalAdmin };
+        postulacion.horarios = { ...horarioSanitizado };
+        postulacion.disponibilidad_horaria = { ...horarioSanitizado };
       });
     }
     this.mostrarModalEditarHorario = false;
@@ -155,7 +228,7 @@ export class AdminPostulacionesPage {
       chevronUpOutline, warning, calendarOutline, logoWhatsapp, buildOutline, 
       sadOutline, megaphoneOutline, closeCircleOutline, shieldCheckmarkOutline, 
       briefcaseOutline, schoolOutline, settingsOutline, logOutOutline, 
-      notificationsOutline, peopleOutline, createOutline
+      notificationsOutline, peopleOutline, createOutline, lockClosedOutline, searchOutline
     });
   }
 
@@ -169,6 +242,7 @@ export class AdminPostulacionesPage {
     if (this.rolUsuario === 'COORDINADOR') {
       this.filtroSedePostulaciones = this.sedeUsuario;
       this.filtroSedeGraficas = this.sedeUsuario;
+      this.filtroSedeReservas = this.sedeUsuario;
       this.nuevoAnuncio.sede_destino = this.sedeUsuario;
     }
 
@@ -187,12 +261,13 @@ export class AdminPostulacionesPage {
 
     await this.cargarOpcionesFiltros();
     await this.cargarPostulaciones();
+    await this.cargarControlTutoriasSolicitadas();
     await this.cargarEstadisticas();
     this.limpiarAnunciosExpirados();
     this.cargarTutoriasEnAlerta();
   }
 
-  // 🌟 CARGA DINÁMICA DE PERÍODOS Y CARRERAS DISPONIBLES
+  // CARGA DINÁMICA DE PERÍODOS Y CARRERAS DISPONIBLES
   async cargarOpcionesFiltros() {
     const periodosSet = new Set<string>();
     const carrerasSet = new Set<string>();
@@ -202,13 +277,21 @@ export class AdminPostulacionesPage {
     }
 
     try {
-      const [snapTutores, snapAsistencias, snapPostulaciones] = await Promise.all([
+      const [snapTutores, snapEstudiantes, snapAsistencias, snapPostulaciones] = await Promise.all([
         getDocs(collection(this.firestore, 'Tutores')),
+        getDocs(collection(this.firestore, 'Estudiantes')),
         getDocs(collection(this.firestore, 'Asistencias')),
         getDocs(collection(this.firestore, 'Postulaciones'))
       ]);
 
       snapTutores.forEach(d => {
+        const data = d.data();
+        if (data['carrera']) carrerasSet.add(String(data['carrera']).trim().toUpperCase());
+        if (data['ultimo_periodo_activo']) periodosSet.add(String(data['ultimo_periodo_activo']).trim());
+        if (data['periodo']) periodosSet.add(String(data['periodo']).trim());
+      });
+
+      snapEstudiantes.forEach(d => {
         const data = d.data();
         if (data['carrera']) carrerasSet.add(String(data['carrera']).trim().toUpperCase());
         if (data['ultimo_periodo_activo']) periodosSet.add(String(data['ultimo_periodo_activo']).trim());
@@ -283,6 +366,90 @@ export class AdminPostulacionesPage {
     this.router.navigate(['/notificaciones'], { queryParams: { panel: 'COORDINADOR' } });
   }
 
+  // =====================================================================
+  // 🌟 PUNTOS #11 Y #14: CONTROL DE TUTORÍAS SOLICITADAS (SEDE Y ESTADO)
+  // =====================================================================
+  async cargarControlTutoriasSolicitadas() {
+    try {
+      const snapReservas = await getDocs(collection(this.firestore, 'Reservas'));
+      this.todasLasReservasControl = snapReservas.docs.map(d => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          ...data,
+          estado: String(data['estado'] || 'PENDIENTE').toUpperCase().trim()
+        };
+      });
+
+      // Ordenar por fecha_exacta descendente (más recientes primero)
+      this.todasLasReservasControl.sort((a, b) => {
+        const fA = String(a.fecha_exacta || a.fecha_solicitud || '');
+        const fB = String(b.fecha_exacta || b.fecha_solicitud || '');
+        return fB.localeCompare(fA);
+      });
+
+      this.aplicarFiltrosReservas();
+    } catch (error) {
+      console.error('Error cargando control de tutorías solicitadas:', error);
+    }
+  }
+
+  aplicarFiltrosReservas() {
+    const esSuperAdmin = this.rolUsuario === 'ADMIN';
+    const sedeObjetivo = esSuperAdmin ? this.filtroSedeReservas : this.sedeUsuario;
+    const estadoObjetivo = String(this.filtroEstadoReservas || 'TODOS').toUpperCase().trim();
+    const textoBusq = String(this.busquedaReservas || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+    // 1. Filtrar primero por Sede para calcular los conteos reales por estado de esa Sede
+    const reservasDeSede = this.todasLasReservasControl.filter(res => {
+      const sedeTutor = String(res.sedeTutor || res.sede || '').toUpperCase().trim();
+      const sedeEst = String(res.sedeEstudiante || '').toUpperCase().trim();
+
+      if (!esSuperAdmin) {
+        return sedeTutor === this.sedeUsuario || sedeEst === this.sedeUsuario;
+      }
+      if (sedeObjetivo === 'GLOBAL') return true;
+      return sedeTutor === sedeObjetivo || sedeEst === sedeObjetivo;
+    });
+
+    this.conteoReservasPorEstado = {
+      total: reservasDeSede.length,
+      pendientes: reservasDeSede.filter(r => r.estado === 'PENDIENTE').length,
+      confirmadas: reservasDeSede.filter(r => r.estado === 'CONFIRMADA').length,
+      canceladas: reservasDeSede.filter(r => r.estado === 'CANCELADA' || r.estado === 'RECHAZADA' || r.estado === 'REQUIERE_ADMIN').length
+    };
+
+    // 2. Filtrar por Estado y búsqueda textual
+    this.reservasControlFiltradas = reservasDeSede.filter(res => {
+      if (estadoObjetivo !== 'TODOS' && res.estado !== estadoObjetivo) {
+        return false;
+      }
+      if (textoBusq) {
+        const bloqueTexto = `${res.materia || ''} ${res.nombreTutor || ''} ${res.nombreEstudiante || ''} ${res.codigo || ''} ${res.docente || ''}`
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        if (!bloqueTexto.includes(textoBusq)) return false;
+      }
+      return true;
+    });
+
+    if (this.cdr) this.cdr.detectChanges();
+  }
+
+  contactarPorWhatsAppControl(celular: string, nombreDestino: string, materia: string, rolDestino: 'ESTUDIANTE' | 'TUTOR') {
+    if (!celular) return;
+    let limpio = String(celular).replace(/\D/g, '');
+    if (limpio.startsWith('0')) limpio = '593' + limpio.substring(1);
+    if (!limpio.startsWith('593') && limpio.length === 9) limpio = '593' + limpio;
+
+    const texto = rolDestino === 'ESTUDIANTE'
+      ? `Hola ${nombreDestino}, te saludamos desde Coordinación GIETAES respecto a tu tutoría solicitada de ${materia}.`
+      : `Hola ${nombreDestino}, te saludamos desde Coordinación GIETAES respecto a la tutoría de ${materia} asignada en tu agenda.`;
+
+    window.open(`https://wa.me/${limpio}?text=${encodeURIComponent(texto)}`, '_blank');
+  }
+
   // ==========================================
   // ALERTAS SOS
   // ==========================================
@@ -296,7 +463,7 @@ export class AdminPostulacionesPage {
       
       snapshot.forEach(documento => {
         const data = documento.data();
-        const sedeReserva = String(data['sede'] || data['sedeEstudiante'] || '').toUpperCase();
+        const sedeReserva = String(data['sede'] || data['sedeTutor'] || data['sedeEstudiante'] || '').toUpperCase();
         const cumpleSede = esSuperAdmin || sedeReserva === this.sedeUsuario;
 
         if (cumpleSede) {
@@ -336,6 +503,7 @@ export class AdminPostulacionesPage {
       this.mostrarAviso(`Tutoría reasignada exitosamente a ${tutor.nombre}.`, 'exito');
       this.mostrarModalReasignacion = false;
       this.cargarTutoriasEnAlerta(); 
+      await this.cargarControlTutoriasSolicitadas();
     } catch (error) {
       this.mostrarAviso('Error al intentar reasignar la tutoría.', 'error');
     }
@@ -350,6 +518,7 @@ export class AdminPostulacionesPage {
       this.mostrarAviso('Solicitud eliminada.', 'info');
       this.mostrarModalReasignacion = false;
       this.cargarTutoriasEnAlerta();
+      await this.cargarControlTutoriasSolicitadas();
     } catch (error) {
       this.mostrarAviso('Error al eliminar.', 'error');
     }
@@ -406,7 +575,7 @@ export class AdminPostulacionesPage {
             ciclo: post['ciclo'],
             celular: post['celular'],
             permanencia: post['permanencia'],
-            horarios: post['disponibilidad_horaria'], 
+            horarios: this.sanitizarHorarioAdmin(post['disponibilidad_horaria'] || {}), 
             url_documento: post['url_documento_rendimiento'] || null, 
             expandido: false,
             materias_postuladas: [] 
@@ -488,7 +657,8 @@ export class AdminPostulacionesPage {
         
         if (!snapTutor.empty) {
           const tutorId = snapTutor.docs[0].id;
-          const horariosPropuestos = post.horarios || post.disponibilidad_horaria || {};
+          // 🌟 PUNTO #4: Asegurar que el horario guardado respete bloqueo sábado >= 13:00 y Virtual
+          const horariosPropuestos = this.sanitizarHorarioAdmin(post.horarios || post.disponibilidad_horaria || {});
           
           if (Object.keys(horariosPropuestos).length > 0) {
             await updateDoc(doc(this.firestore, 'Tutores', tutorId), {
@@ -552,19 +722,27 @@ export class AdminPostulacionesPage {
   }
 
   // ==========================================================================
-  // 🌟 PUNTOS #15 y #16: INDICADORES NUMÉRICOS SOBRIOS + FILTROS (SEDE/PERÍODO/CARRERA)
+  // 🌟 PUNTOS #15 y #16: INDICADORES + TABLA DE TUTORES Y TABLA DE ESTUDIANTES
   // ==========================================================================
   async cargarEstadisticas() {
     try {
-      const [queryTutores, queryAsistencias, queryPostulaciones] = await Promise.all([
+      const [queryTutores, queryEstudiantes, queryAsistencias, queryPostulaciones, queryReservas] = await Promise.all([
         getDocs(collection(this.firestore, 'Tutores')),
+        getDocs(collection(this.firestore, 'Estudiantes')),
         getDocs(collection(this.firestore, 'Asistencias')),
-        getDocs(query(collection(this.firestore, 'Postulaciones'), where('estado_aprobacion', '==', 'PENDIENTE')))
+        getDocs(query(collection(this.firestore, 'Postulaciones'), where('estado_aprobacion', '==', 'PENDIENTE'))),
+        getDocs(collection(this.firestore, 'Reservas'))
       ]);
 
       const esSuperAdmin = this.rolUsuario === 'ADMIN';
       const mapaTutorInfo: { [correo: string]: { carrera: string; sede: string } } = {};
       const resumenCarreras: { [carrera: string]: { tutoresActivos: number; tutoriasImpartidas: number } } = {};
+
+      // Estructuras para Tablas Detalladas (Punto #15)
+      const mapaTutoresDetalle: { [correo: string]: any } = {};
+      const mapaEstudiantesDetalle: { [claveEst: string]: any } = {};
+      const mapaEstudiantesPorCorreo: { [correo: string]: any } = {};
+      const mapaEstudiantesPorNombre: { [nombreNorm: string]: any } = {};
 
       let totalTutores = 0;
       let tutoresActivos = 0;
@@ -572,9 +750,10 @@ export class AdminPostulacionesPage {
       // 1. Procesar Tutores
       queryTutores.forEach((docSnap) => {
         const data = docSnap.data();
-        const sedeTutor = String(data['sede'] || '').toUpperCase();
-        const estadoTutor = String(data['estado'] || '').toUpperCase();
+        const sedeTutor = String(data['sede'] || '').toUpperCase().trim();
+        const estadoTutor = String(data['estado'] || 'INACTIVO').toUpperCase().trim();
         const correoTutor = String(data['correo'] || data['correo_google'] || '').toLowerCase().trim();
+        const nombreTutor = String(data['nombre'] || 'Sin Nombre').trim();
         const carrera = String(data['carrera'] || 'NO ASIGNADA').trim().toUpperCase();
         const periodoTutor = String(data['ultimo_periodo_activo'] || data['periodo'] || '').trim();
 
@@ -582,7 +761,6 @@ export class AdminPostulacionesPage {
         const cumpleSede = tienePermisoSede && (this.filtroSedeGraficas === 'GLOBAL' || sedeTutor === this.filtroSedeGraficas);
         if (!cumpleSede) return;
 
-        // Guardamos el mapa completo de la sede para cruzar con asistencias históricas
         mapaTutorInfo[correoTutor] = { carrera, sede: sedeTutor };
 
         const cumpleCarrera = this.filtroCarreraMetricas === 'TODAS' || carrera === this.filtroCarreraMetricas;
@@ -597,10 +775,81 @@ export class AdminPostulacionesPage {
             }
             resumenCarreras[carrera].tutoresActivos++;
           }
+
+          let materiasArr: string[] = [];
+          if (Array.isArray(data['materias'])) {
+            materiasArr = data['materias'].map((m: string) => String(m).toUpperCase().trim()).filter(Boolean);
+          } else if (typeof data['materias'] === 'string') {
+            materiasArr = data['materias'].split(',').map((m: string) => m.trim().toUpperCase()).filter(Boolean);
+          }
+
+          mapaTutoresDetalle[correoTutor || docSnap.id] = {
+            correo: correoTutor,
+            nombre: nombreTutor,
+            sede: sedeTutor || 'N/A',
+            carrera,
+            estado: estadoTutor,
+            cantidadMaterias: materiasArr.length,
+            materiasTexto: materiasArr.length > 0 ? materiasArr.join(', ') : 'Sin materias',
+            sesionesImpartidas: 0,
+            minutosAcumulados: 0,
+            horasFormateadas: '0h 0m',
+            estudiantesSet: new Set<string>(),
+            estudiantesAtendidos: 0,
+            reservasActivas: 0,
+            sumaCalificaciones: 0,
+            cantidadCalificaciones: 0,
+            calificacionPromedio: 0
+          };
         }
       });
 
-      // 2. Procesar Asistencias (Tutorías Impartidas, Horas y Estudiantes Únicos)
+      // 2. Procesar Estudiantes base
+      queryEstudiantes.forEach((docSnap) => {
+        const data = docSnap.data();
+        const sedeEst = String(data['sede'] || '').toUpperCase().trim();
+        const carreraEst = String(data['carrera'] || 'NO ASIGNADA').trim().toUpperCase();
+        const correoEst = String(data['correo'] || data['correo_google'] || '').toLowerCase().trim();
+        const nombreEst = String(data['nombre_completo'] || data['nombre'] || 'Sin Nombre').trim();
+        const cedulaEst = String(data['cedula'] || '').trim();
+        const cicloEst = data['ciclo'] || '';
+        const periodoEst = String(data['ultimo_periodo_activo'] || data['periodo'] || '').trim();
+
+        const tienePermisoSede = esSuperAdmin || sedeEst === this.sedeUsuario;
+        const cumpleSede = tienePermisoSede && (this.filtroSedeGraficas === 'GLOBAL' || sedeEst === this.filtroSedeGraficas);
+        const cumpleCarrera = this.filtroCarreraMetricas === 'TODAS' || carreraEst === this.filtroCarreraMetricas;
+        const cumplePeriodo = this.filtroPeriodoMetricas === 'TODOS' || !periodoEst || periodoEst === this.filtroPeriodoMetricas;
+
+        const registroEst = {
+          clave: correoEst || cedulaEst || docSnap.id,
+          correo: correoEst,
+          cedula: cedulaEst,
+          nombre: nombreEst,
+          sede: sedeEst || 'N/A',
+          carrera: carreraEst,
+          ciclo: cicloEst,
+          tutoriasAsistidas: 0,
+          inasistencias: 0,
+          minutosRecibidos: 0,
+          horasFormateadas: '0h 0m',
+          materiasSet: new Set<string>(),
+          materiasTexto: 'Ninguna',
+          reservasActivas: 0,
+          ultimaActividad: 'Sin actividad'
+        };
+
+        if (correoEst) mapaEstudiantesPorCorreo[correoEst] = registroEst;
+        if (nombreEst) {
+          const normNom = nombreEst.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          mapaEstudiantesPorNombre[normNom] = registroEst;
+        }
+
+        if (cumpleSede && cumpleCarrera && cumplePeriodo) {
+          mapaEstudiantesDetalle[registroEst.clave] = registroEst;
+        }
+      });
+
+      // 3. Procesar Asistencias (KPIs + detalle de Tutores y Estudiantes)
       let tutoriasImpartidas = 0;
       let minutosTotales = 0;
       const estudiantesSet = new Set<string>();
@@ -608,32 +857,143 @@ export class AdminPostulacionesPage {
       queryAsistencias.forEach((docSnap) => {
         const data = docSnap.data();
         const correoTutor = String(data['correoTutor'] || '').toLowerCase().trim();
-        const sedeAsis = String(data['sede'] || mapaTutorInfo[correoTutor]?.sede || '').toUpperCase();
-        const carreraAsis = String(mapaTutorInfo[correoTutor]?.carrera || 'NO ASIGNADA').toUpperCase();
+        const nombreTutorAsis = String(data['nombreTutor'] || 'Tutor').trim();
+        const sedeAsis = String(data['sede'] || mapaTutorInfo[correoTutor]?.sede || '').toUpperCase().trim();
+        const carreraAsis = String(mapaTutorInfo[correoTutor]?.carrera || 'NO ASIGNADA').toUpperCase().trim();
         const periodoAsis = String(data['periodo'] || '').trim();
+        const asistioFlag = String(data['asistio'] || 'SI').toUpperCase().trim();
 
         const tienePermisoSede = esSuperAdmin || sedeAsis === this.sedeUsuario;
         const cumpleSede = tienePermisoSede && (this.filtroSedeGraficas === 'GLOBAL' || sedeAsis === this.filtroSedeGraficas);
         const cumpleCarrera = this.filtroCarreraMetricas === 'TODAS' || carreraAsis === this.filtroCarreraMetricas;
         const cumplePeriodo = this.filtroPeriodoMetricas === 'TODOS' || periodoAsis === this.filtroPeriodoMetricas;
 
-        if (cumpleSede && cumpleCarrera && cumplePeriodo) {
-          tutoriasImpartidas++;
-          const hrs = Number(data['horas_duracion'] || 0);
-          const mins = Number(data['minutos_duracion'] || 0);
-          minutosTotales += (hrs * 60) + mins;
+        if (!cumpleSede || !cumpleCarrera || !cumplePeriodo) return;
 
-          const idEst = String(data['correo_estudiante'] || data['estudiante_info'] || '').toLowerCase().trim();
-          if (idEst) estudiantesSet.add(idEst);
+        const hrs = Number(data['horas_duracion'] || 0);
+        const mins = Number(data['minutos_duracion'] || 0);
+        const minsSesion = (hrs * 60) + mins;
+        const materiaAsis = String(data['materia'] || '').toUpperCase().trim();
+        const correoEstAsis = String(data['correo_estudiante'] || '').toLowerCase().trim();
+        const infoEstRaw = String(data['estudiante_info'] || '').trim();
+        const nombreEstLimpio = infoEstRaw.split('\n')[0].replace('(Solicitante)', '').trim();
+        const fechaAsis = String(data['fecha_impartida'] || data['fecha_registro'] || '').split('T')[0];
 
-          if (!resumenCarreras[carreraAsis]) {
-            resumenCarreras[carreraAsis] = { tutoresActivos: 0, tutoriasImpartidas: 0 };
+        // Asegurar fila del tutor si tuvo actividad en el período aunque no estuviera en la lista previa
+        if (!mapaTutoresDetalle[correoTutor] && correoTutor) {
+          mapaTutoresDetalle[correoTutor] = {
+            correo: correoTutor,
+            nombre: nombreTutorAsis,
+            sede: sedeAsis || 'N/A',
+            carrera: carreraAsis,
+            estado: 'ACTIVO',
+            cantidadMaterias: materiaAsis ? 1 : 0,
+            materiasTexto: materiaAsis || 'N/A',
+            sesionesImpartidas: 0,
+            minutosAcumulados: 0,
+            horasFormateadas: '0h 0m',
+            estudiantesSet: new Set<string>(),
+            estudiantesAtendidos: 0,
+            reservasActivas: 0,
+            sumaCalificaciones: 0,
+            cantidadCalificaciones: 0,
+            calificacionPromedio: 0
+          };
+        }
+
+        // Localizar o crear fila del estudiante
+        let estRow = correoEstAsis ? mapaEstudiantesPorCorreo[correoEstAsis] : null;
+        if (!estRow && nombreEstLimpio) {
+          const normNom = nombreEstLimpio.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          estRow = mapaEstudiantesPorNombre[normNom] || null;
+        }
+        if (!estRow && (correoEstAsis || nombreEstLimpio)) {
+          const claveNueva = correoEstAsis || nombreEstLimpio.toLowerCase();
+          estRow = {
+            clave: claveNueva,
+            correo: correoEstAsis,
+            cedula: '',
+            nombre: nombreEstLimpio || correoEstAsis,
+            sede: sedeAsis || 'N/A',
+            carrera: carreraAsis,
+            ciclo: '',
+            tutoriasAsistidas: 0,
+            inasistencias: 0,
+            minutosRecibidos: 0,
+            horasFormateadas: '0h 0m',
+            materiasSet: new Set<string>(),
+            materiasTexto: 'Ninguna',
+            reservasActivas: 0,
+            ultimaActividad: 'Sin actividad'
+          };
+          if (correoEstAsis) mapaEstudiantesPorCorreo[correoEstAsis] = estRow;
+        }
+        if (estRow && !mapaEstudiantesDetalle[estRow.clave]) {
+          mapaEstudiantesDetalle[estRow.clave] = estRow;
+        }
+
+        if (asistioFlag === 'NO') {
+          if (estRow) {
+            estRow.inasistencias++;
+            if (fechaAsis && (estRow.ultimaActividad === 'Sin actividad' || fechaAsis > estRow.ultimaActividad)) {
+              estRow.ultimaActividad = fechaAsis;
+            }
           }
-          resumenCarreras[carreraAsis].tutoriasImpartidas++;
+          return;
+        }
+
+        // Asistencia efectiva (asistio === 'SI')
+        tutoriasImpartidas++;
+        minutosTotales += minsSesion;
+
+        const idEst = correoEstAsis || infoEstRaw.toLowerCase().trim();
+        if (idEst) estudiantesSet.add(idEst);
+
+        if (!resumenCarreras[carreraAsis]) {
+          resumenCarreras[carreraAsis] = { tutoresActivos: 0, tutoriasImpartidas: 0 };
+        }
+        resumenCarreras[carreraAsis].tutoriasImpartidas++;
+
+        if (mapaTutoresDetalle[correoTutor]) {
+          const tRow = mapaTutoresDetalle[correoTutor];
+          tRow.sesionesImpartidas++;
+          tRow.minutosAcumulados += minsSesion;
+          if (idEst) tRow.estudiantesSet.add(idEst);
+          const calif = Number(data['calificacion_tutor'] || 0);
+          if (calif > 0) {
+            tRow.sumaCalificaciones += calif;
+            tRow.cantidadCalificaciones++;
+          }
+        }
+
+        if (estRow) {
+          estRow.tutoriasAsistidas++;
+          estRow.minutosRecibidos += minsSesion;
+          if (materiaAsis) estRow.materiasSet.add(materiaAsis);
+          if (fechaAsis && (estRow.ultimaActividad === 'Sin actividad' || fechaAsis > estRow.ultimaActividad)) {
+            estRow.ultimaActividad = fechaAsis;
+          }
         }
       });
 
-      // 3. Procesar Postulaciones Pendientes en el mismo filtro
+      // 4. Cruzar Reservas Activas (PENDIENTE / CONFIRMADA) con Tutores y Estudiantes
+      queryReservas.forEach((docSnap) => {
+        const data = docSnap.data();
+        const estadoRes = String(data['estado'] || 'PENDIENTE').toUpperCase().trim();
+        if (estadoRes !== 'PENDIENTE' && estadoRes !== 'CONFIRMADA') return;
+
+        const correoT = String(data['correoTutor'] || '').toLowerCase().trim();
+        const correoE = String(data['correoEstudiante'] || '').toLowerCase().trim();
+
+        if (correoT && mapaTutoresDetalle[correoT]) {
+          mapaTutoresDetalle[correoT].reservasActivas++;
+        }
+        if (correoE && mapaEstudiantesPorCorreo[correoE] && mapaEstudiantesDetalle[mapaEstudiantesPorCorreo[correoE].clave]) {
+          mapaEstudiantesDetalle[mapaEstudiantesPorCorreo[correoE].clave].reservasActivas++;
+        }
+      });
+
+      // 5. Procesar Postulaciones Pendientes en el mismo filtro
       let postulacionesPendientes = 0;
       queryPostulaciones.forEach((docSnap) => {
         const data = docSnap.data();
@@ -669,9 +1029,62 @@ export class AdminPostulacionesPage {
         }))
         .sort((a, b) => b.tutoriasImpartidas - a.tutoriasImpartidas || b.tutoresActivos - a.tutoresActivos);
 
+      // Finalizar cálculos de Tabla de Tutores
+      this.tablaTutoresMaster = Object.values(mapaTutoresDetalle)
+        .map((t: any) => {
+          const h = Math.floor(t.minutosAcumulados / 60);
+          const m = t.minutosAcumulados % 60;
+          return {
+            ...t,
+            horasFormateadas: `${h}h ${m}m`,
+            estudiantesAtendidos: t.estudiantesSet.size,
+            calificacionPromedio: t.cantidadCalificaciones > 0
+              ? Math.round((t.sumaCalificaciones / t.cantidadCalificaciones) * 10) / 10
+              : 0
+          };
+        })
+        .sort((a, b) => b.sesionesImpartidas - a.sesionesImpartidas || a.nombre.localeCompare(b.nombre));
+
+      // Finalizar cálculos de Tabla de Estudiantes
+      this.tablaEstudiantesMaster = Object.values(mapaEstudiantesDetalle)
+        .map((e: any) => {
+          const h = Math.floor(e.minutosRecibidos / 60);
+          const m = e.minutosRecibidos % 60;
+          const mats = Array.from(e.materiasSet) as string[];
+          return {
+            ...e,
+            horasFormateadas: `${h}h ${m}m`,
+            materiasTexto: mats.length > 0 ? mats.join(', ') : 'Sin sesiones registradas'
+          };
+        })
+        .sort((a, b) => b.tutoriasAsistidas - a.tutoriasAsistidas || b.reservasActivas - a.reservasActivas || a.nombre.localeCompare(b.nombre));
+
+      this.filtrarTablasDetalle();
       if (this.cdr) this.cdr.detectChanges();
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
+    }
+  }
+
+  filtrarTablasDetalle() {
+    const qTutor = String(this.busquedaTablaTutores || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (!qTutor) {
+      this.tablaTutoresFiltrada = [...this.tablaTutoresMaster];
+    } else {
+      this.tablaTutoresFiltrada = this.tablaTutoresMaster.filter(t => {
+        const txt = `${t.nombre} ${t.correo} ${t.carrera} ${t.materiasTexto}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return txt.includes(qTutor);
+      });
+    }
+
+    const qEst = String(this.busquedaTablaEstudiantes || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (!qEst) {
+      this.tablaEstudiantesFiltrada = [...this.tablaEstudiantesMaster];
+    } else {
+      this.tablaEstudiantesFiltrada = this.tablaEstudiantesMaster.filter(e => {
+        const txt = `${e.nombre} ${e.correo} ${e.cedula} ${e.carrera} ${e.materiasTexto}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return txt.includes(qEst);
+      });
     }
   }
 

@@ -46,7 +46,7 @@
   
   <h2 class="titulo-seccion">Bandeja de Postulaciones</h2>
 
-  <!-- 🌟 FILTROS DE BANDEJA (SEDE + PERÍODO + CARRERA) -->
+  <!-- FILTROS DE BANDEJA (SEDE + PERÍODO + CARRERA) -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px;">
     
     <!-- Filtro Sede (Solo SuperAdmin) -->
@@ -206,6 +206,164 @@
     </div>
   </div>
 
+  <!-- ===================================================================== -->
+  <!-- 🌟 PUNTOS #11 Y #14: CONTROL DE TUTORÍAS SOLICITADAS (SEDE Y ESTADO)  -->
+  <!-- ===================================================================== -->
+  <h2 class="titulo-seccion">Control de Tutorías Solicitadas</h2>
+
+  <!-- Filtros de Control de Tutorías: Sede + Estado + Buscador -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 14px;">
+    
+    <!-- Filtro Sede -->
+    <div class="contenedor-filtro" *ngIf="rolUsuario === 'ADMIN'" style="margin-bottom: 0;">
+      <div class="filtro-icono"><ion-icon name="location-outline"></ion-icon></div>
+      <div class="filtro-contenido">
+        <label>Sede</label>
+        <ion-select [(ngModel)]="filtroSedeReservas" (ionChange)="aplicarFiltrosReservas()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco' }">
+          <ion-select-option value="GLOBAL">Todas las Sedes (Global)</ion-select-option>
+          <ion-select-option value="CUENCA">Cuenca</ion-select-option>
+          <ion-select-option value="QUITO">Quito</ion-select-option>
+          <ion-select-option value="GUAYAQUIL">Guayaquil</ion-select-option>
+        </ion-select>
+      </div>
+    </div>
+
+    <div class="contenedor-filtro" *ngIf="rolUsuario === 'COORDINADOR'" style="margin-bottom: 0; background: #f8fafc;">
+      <div class="filtro-icono"><ion-icon name="location-outline"></ion-icon></div>
+      <div class="filtro-contenido">
+        <label>Sede Asignada</label>
+        <span style="color: #003366; font-weight: 900; font-size: 0.9rem; padding: 6px 0;">Sede {{ sedeUsuario }}</span>
+      </div>
+    </div>
+
+    <!-- Filtro Estado -->
+    <div class="contenedor-filtro" style="margin-bottom: 0;">
+      <div class="filtro-icono"><ion-icon name="filter-outline"></ion-icon></div>
+      <div class="filtro-contenido">
+        <label>Estado de Tutoría</label>
+        <ion-select [(ngModel)]="filtroEstadoReservas" (ionChange)="aplicarFiltrosReservas()" interface="popover" [interfaceOptions]="{ cssClass: 'popover-blanco' }">
+          <ion-select-option value="TODOS">Todos los Estados</ion-select-option>
+          <ion-select-option value="PENDIENTE">Pendientes</ion-select-option>
+          <ion-select-option value="CONFIRMADA">Confirmadas</ion-select-option>
+          <ion-select-option value="CANCELADA">Canceladas</ion-select-option>
+          <ion-select-option value="RECHAZADA">Rechazadas</ion-select-option>
+          <ion-select-option value="REQUIERE_ADMIN">Requiere Atención Admin</ion-select-option>
+        </ion-select>
+      </div>
+    </div>
+
+    <!-- Buscador Rápido -->
+    <div class="contenedor-filtro" style="margin-bottom: 0;">
+      <div class="filtro-icono"><ion-icon name="search-outline"></ion-icon></div>
+      <div class="filtro-contenido">
+        <label>Buscar</label>
+        <ion-input [(ngModel)]="busquedaReservas" (ionInput)="aplicarFiltrosReservas()" placeholder="Materia, tutor, alumno, código..." style="color: #003366; font-weight: 700; font-size: 0.85rem; --padding-start: 0;"></ion-input>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Resumen de Conteo Rápido por Estado -->
+  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+    <span (click)="filtroEstadoReservas = 'TODOS'; aplicarFiltrosReservas()"
+          style="cursor: pointer; background: #003366; color: #ffffff; padding: 5px 12px; border-radius: 20px; font-size: 0.74rem; font-weight: 900;">
+      Total: {{ conteoReservasPorEstado.total }}
+    </span>
+    <span (click)="filtroEstadoReservas = 'PENDIENTE'; aplicarFiltrosReservas()"
+          style="cursor: pointer; background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; padding: 5px 12px; border-radius: 20px; font-size: 0.74rem; font-weight: 900;">
+      Pendientes: {{ conteoReservasPorEstado.pendientes }}
+    </span>
+    <span (click)="filtroEstadoReservas = 'CONFIRMADA'; aplicarFiltrosReservas()"
+          style="cursor: pointer; background: #d1fae5; color: #065f46; border: 1px solid #10b981; padding: 5px 12px; border-radius: 20px; font-size: 0.74rem; font-weight: 900;">
+      Confirmadas: {{ conteoReservasPorEstado.confirmadas }}
+    </span>
+    <span (click)="filtroEstadoReservas = 'CANCELADA'; aplicarFiltrosReservas()"
+          style="cursor: pointer; background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; padding: 5px 12px; border-radius: 20px; font-size: 0.74rem; font-weight: 900;">
+      Canceladas / Rechazadas: {{ conteoReservasPorEstado.canceladas }}
+    </span>
+  </div>
+
+  <!-- Estado Vacío Tutorías Solicitadas -->
+  <div *ngIf="reservasControlFiltradas.length === 0" style="background: #ffffff; border-radius: 14px; padding: 28px 18px; text-align: center; border: 1.5px solid #e2e8f0; margin-bottom: 24px;">
+    <ion-icon name="calendar-outline" style="font-size: 2.8rem; color: #94a3b8;"></ion-icon>
+    <h4 style="margin: 8px 0 4px 0; color: #003366; font-weight: 900; font-size: 0.95rem;">Sin solicitudes en este filtro</h4>
+    <p style="margin: 0; color: #64748b; font-size: 0.82rem;">No se encontraron tutorías solicitadas para la sede y estado seleccionados.</p>
+  </div>
+
+  <!-- Listado de Control de Tutorías Solicitadas -->
+  <div *ngIf="reservasControlFiltradas.length > 0" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+    <div *ngFor="let res of reservasControlFiltradas" class="card-control-reserva animate__animated animate__fadeIn">
+      
+      <!-- Cabecera: Materia + Estado -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 10px;">
+        <div>
+          <span style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; display: block;">
+            {{ res.tipo_tutoria || 'CONSULTA' }} • {{ res.modalidad || 'Presencial' }} • Cód: {{ res.codigo || 'N/A' }}
+          </span>
+          <h4 style="margin: 3px 0 0 0; color: #003366; font-weight: 900; font-size: 0.95rem;">
+            {{ res.materia }}
+          </h4>
+          <span *ngIf="res.materia_tutor_origen && res.materia_tutor_origen !== res.materia" style="font-size: 0.7rem; color: #d97706; font-weight: 800;">
+            Cubierta desde: {{ res.materia_tutor_origen }}
+          </span>
+        </div>
+
+        <span class="badge-estado-reserva" [ngClass]="'estado-' + (res.estado || 'PENDIENTE').toLowerCase()">
+          {{ res.estado || 'PENDIENTE' }}
+        </span>
+      </div>
+
+      <!-- Cuerpo: Estudiante, Tutor, Fecha y Sede -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; font-size: 0.8rem; color: #334155;">
+        <div>
+          <strong style="color: #003366;">Estudiante:</strong> {{ res.nombreEstudiante || 'No registrado' }}
+          <span style="display: block; font-size: 0.72rem; color: #64748b;">
+            Sede Est.: {{ res.sedeEstudiante || 'N/A' }} • {{ res.correoEstudiante }}
+          </span>
+        </div>
+
+        <div>
+          <strong style="color: #003366;">Tutor Asignado:</strong> {{ res.nombreTutor || 'Sin asignar' }}
+          <span style="display: block; font-size: 0.72rem; color: #64748b;">
+            Sede Tutor: {{ res.sedeTutor || res.sede || 'N/A' }} • {{ res.correoTutor }}
+          </span>
+        </div>
+
+        <div>
+          <strong style="color: #003366;">Fecha y Hora:</strong> {{ res.fecha_exacta || 'Por definir' }} ({{ res.dia_elegido || res.dia }})
+          <span style="display: block; font-size: 0.72rem; color: #0f766e; font-weight: 800;">
+            Horario: {{ res.hora_elegida || res.horas }}
+          </span>
+        </div>
+
+        <div>
+          <strong style="color: #003366;">Docente / Motivo:</strong> {{ res.docente || 'No especificado' }}
+          <span style="display: block; font-size: 0.72rem; color: #64748b;">
+            Derivación: {{ res.tipo_derivacion || 'DECISIÓN PROPIA' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Notas o Motivo de Cancelación si existe -->
+      <div *ngIf="res.motivo_cancelacion || res.notas_admin" style="margin-top: 10px; background: #fef2f2; border-left: 3px solid #ef4444; padding: 7px 10px; border-radius: 6px; font-size: 0.76rem; color: #991b1b;">
+        <strong>Observación:</strong> {{ res.motivo_cancelacion || res.notas_admin }}
+      </div>
+
+      <!-- Acciones rápidas de contacto -->
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap;">
+        <ion-button *ngIf="res.celularEstudiante && res.celularEstudiante !== 'No registrado'" fill="outline" color="success" size="small" (click)="contactarPorWhatsAppControl(res.celularEstudiante, res.nombreEstudiante, res.materia, 'ESTUDIANTE')" style="font-weight: 800; font-size: 0.72rem; height: 30px;">
+          <ion-icon name="logo-whatsapp" slot="start"></ion-icon> Estudiante
+        </ion-button>
+        <ion-button *ngIf="res.celularTutor && res.celularTutor !== 'No registrado'" fill="outline" color="primary" size="small" (click)="contactarPorWhatsAppControl(res.celularTutor, res.nombreTutor, res.materia, 'TUTOR')" style="font-weight: 800; font-size: 0.72rem; height: 30px;">
+          <ion-icon name="logo-whatsapp" slot="start"></ion-icon> Tutor
+        </ion-button>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="separador">
+
   <!-- MODAL DE REASIGNACIÓN -->
   <ion-modal [isOpen]="mostrarModalReasignacion" (didDismiss)="mostrarModalReasignacion = false" class="modal-gietaes-centrado">
     <ng-template>
@@ -258,7 +416,7 @@
   </ion-modal>
 
   <!-- ================================================================= -->
-  <!-- 🌟 PUNTO #15 y #16: DASHBOARD NUMÉRICO SOBRIO + FILTROS           -->
+  <!-- 🌟 PUNTOS #15 y #16: INDICADORES + TABLA TUTORES Y ESTUDIANTES    -->
   <!-- ================================================================= -->
   <h2 class="titulo-seccion">Indicadores de Gestión</h2>
   
@@ -302,7 +460,7 @@
 
   </div>
 
-  <!-- TARJETAS NUMÉRICAS DE ALTO CONTRASTE (SUSTITUYE GRÁFICAS PESADAS) -->
+  <!-- TARJETAS NUMÉRICAS DE ALTO CONTRASTE -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 12px; margin-bottom: 18px;">
     
     <!-- KPI 1: Total de Tutores -->
@@ -367,7 +525,7 @@
 
   </div>
 
-  <!-- TABLA RESUMEN POR CARRERA (SOBRIA Y DE ALTA LECTURA) -->
+  <!-- TABLA RESUMEN POR CARRERA -->
   <div *ngIf="desglosePorCarrera.length > 0" style="background: #ffffff; border-radius: 14px; padding: 16px; border: 1.5px solid #e2e8f0; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 8px;">
       <h3 style="margin: 0; color: #003366; font-size: 0.9rem; font-weight: 900; text-transform: uppercase;">Desglose por Carrera</h3>
@@ -384,6 +542,156 @@
           {{ item.tutoriasImpartidas }} ses.
         </span>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 🌟 PUNTO #15: TABLA DETALLADA DE TUTORES (TRABAJO REALIZADO)           -->
+  <!-- ===================================================================== -->
+  <div style="background: #ffffff; border-radius: 14px; padding: 16px; border: 1.5px solid #e2e8f0; border-top: 4px solid #003366; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0, 51, 102, 0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+      <div>
+        <h3 style="margin: 0; color: #003366; font-size: 0.95rem; font-weight: 900; text-transform: uppercase;">
+          Tabla Detallada de Tutores ({{ tablaTutoresFiltrada.length }})
+        </h3>
+        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #64748b;">
+          Rendimiento, sesiones validadas, horas impartidas y estudiantes atendidos según los filtros activos.
+        </p>
+      </div>
+
+      <div style="min-width: 220px; flex: 1; max-width: 300px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 2px 10px; display: flex; align-items: center;">
+        <ion-icon name="search-outline" style="color: #64748b; margin-right: 6px;"></ion-icon>
+        <ion-input [(ngModel)]="busquedaTablaTutores" (ionInput)="filtrarTablasDetalle()" placeholder="Filtrar tutor o materia..." style="font-size: 0.8rem; color: #003366; font-weight: 700;"></ion-input>
+      </div>
+    </div>
+
+    <div *ngIf="tablaTutoresFiltrada.length === 0" style="text-align: center; padding: 20px; color: #64748b; font-size: 0.82rem;">
+      No existen tutores registrados con los filtros de Sede, Carrera y Período seleccionados.
+    </div>
+
+    <div *ngIf="tablaTutoresFiltrada.length > 0" class="tabla-metricas-wrapper">
+      <table class="tabla-metricas-gietaes">
+        <thead>
+          <tr>
+            <th>Tutor</th>
+            <th>Sede</th>
+            <th>Carrera</th>
+            <th>Estado</th>
+            <th>Materias</th>
+            <th>Sesiones Impartidas</th>
+            <th>Horas Impartidas</th>
+            <th>Estudiantes Atendidos</th>
+            <th>Reservas Activas</th>
+            <th>Calif. Prom.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of tablaTutoresFiltrada">
+            <td>
+              <strong style="color: #003366; display: block;">{{ t.nombre }}</strong>
+              <span style="font-size: 0.7rem; color: #64748b;">{{ t.correo }}</span>
+            </td>
+            <td><span class="pill-sede">{{ t.sede }}</span></td>
+            <td style="font-size: 0.74rem; font-weight: 700;">{{ t.carrera }}</td>
+            <td>
+              <span class="pill-estado" [ngClass]="t.estado === 'ACTIVO' ? 'activo' : 'inactivo'">
+                {{ t.estado }}
+              </span>
+            </td>
+            <td style="max-width: 210px; font-size: 0.72rem; color: #334155;">
+              <strong>({{ t.cantidadMaterias }})</strong> {{ t.materiasTexto }}
+            </td>
+            <td style="text-align: center; font-weight: 900; color: #003366; font-size: 0.88rem;">
+              {{ t.sesionesImpartidas }}
+            </td>
+            <td style="text-align: center; font-weight: 900; color: #0f766e;">
+              {{ t.horasFormateadas }}
+            </td>
+            <td style="text-align: center; font-weight: 800; color: #0369a1;">
+              {{ t.estudiantesAtendidos }}
+            </td>
+            <td style="text-align: center; font-weight: 800; color: #b45309;">
+              {{ t.reservasActivas }}
+            </td>
+            <td style="text-align: center; font-weight: 900; color: #d97706;">
+              {{ t.calificacionPromedio > 0 ? (t.calificacionPromedio + ' / 5') : 'S/C' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 🌟 PUNTO #15: TABLA DETALLADA DE ESTUDIANTES (PARTICIPACIÓN)          -->
+  <!-- ===================================================================== -->
+  <div style="background: #ffffff; border-radius: 14px; padding: 16px; border: 1.5px solid #e2e8f0; border-top: 4px solid #EAB308; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0, 51, 102, 0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+      <div>
+        <h3 style="margin: 0; color: #003366; font-size: 0.95rem; font-weight: 900; text-transform: uppercase;">
+          Tabla Detallada de Estudiantes ({{ tablaEstudiantesFiltrada.length }})
+        </h3>
+        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #64748b;">
+          Asistencias recibidas, horas acumuladas, materias reforzadas y reservas activas por estudiante.
+        </p>
+      </div>
+
+      <div style="min-width: 220px; flex: 1; max-width: 300px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 2px 10px; display: flex; align-items: center;">
+        <ion-icon name="search-outline" style="color: #64748b; margin-right: 6px;"></ion-icon>
+        <ion-input [(ngModel)]="busquedaTablaEstudiantes" (ionInput)="filtrarTablasDetalle()" placeholder="Filtrar estudiante o materia..." style="font-size: 0.8rem; color: #003366; font-weight: 700;"></ion-input>
+      </div>
+    </div>
+
+    <div *ngIf="tablaEstudiantesFiltrada.length === 0" style="text-align: center; padding: 20px; color: #64748b; font-size: 0.82rem;">
+      No existen estudiantes registrados con los filtros de Sede, Carrera y Período seleccionados.
+    </div>
+
+    <div *ngIf="tablaEstudiantesFiltrada.length > 0" class="tabla-metricas-wrapper">
+      <table class="tabla-metricas-gietaes">
+        <thead>
+          <tr>
+            <th>Estudiante</th>
+            <th>Sede</th>
+            <th>Carrera / Ciclo</th>
+            <th>Asistencias</th>
+            <th>Inasistencias</th>
+            <th>Horas Recibidas</th>
+            <th>Materias Reforzadas</th>
+            <th>Reservas Activas</th>
+            <th>Última Actividad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let est of tablaEstudiantesFiltrada">
+            <td>
+              <strong style="color: #003366; display: block;">{{ est.nombre }}</strong>
+              <span style="font-size: 0.7rem; color: #64748b;">{{ est.correo || est.cedula }}</span>
+            </td>
+            <td><span class="pill-sede">{{ est.sede }}</span></td>
+            <td style="font-size: 0.74rem; font-weight: 700;">
+              {{ est.carrera }} <span *ngIf="est.ciclo" style="color: #64748b;">(Ciclo {{ est.ciclo }})</span>
+            </td>
+            <td style="text-align: center; font-weight: 900; color: #065f46; font-size: 0.88rem;">
+              {{ est.tutoriasAsistidas }}
+            </td>
+            <td style="text-align: center; font-weight: 800; color: #dc2626;">
+              {{ est.inasistencias }}
+            </td>
+            <td style="text-align: center; font-weight: 900; color: #003366;">
+              {{ est.horasFormateadas }}
+            </td>
+            <td style="max-width: 220px; font-size: 0.72rem; color: #334155;">
+              {{ est.materiasTexto }}
+            </td>
+            <td style="text-align: center; font-weight: 800; color: #b45309;">
+              {{ est.reservasActivas }}
+            </td>
+            <td style="text-align: center; font-size: 0.74rem; color: #475569; font-weight: 700;">
+              {{ est.ultimaActividad }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -500,8 +808,8 @@
     </ng-template>
   </ion-popover>
 
-  <!-- MODAL PARA EDITAR HORARIO ANTES DE APROBAR -->
-  <ion-modal [isOpen]="mostrarModalEditarHorario" (didDismiss)="mostrarModalEditarHorario = false" class="modal-gietaes-centrado" style="--width: 95%; --max-width: 800px; --height: 80vh;">
+  <!-- MODAL PARA EDITAR HORARIO ANTES DE APROBAR (🌟 PUNTO #4: BLOQUEO SÁBADO >= 13:00 + FORZAR VIRTUAL) -->
+  <ion-modal [isOpen]="mostrarModalEditarHorario" (didDismiss)="mostrarModalEditarHorario = false" class="modal-gietaes-centrado" style="--width: 95%; --max-width: 800px; --height: 82vh;">
     <ng-template>
       <ion-header class="ion-no-border">
         <div style="background: #003366; padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center;">
@@ -512,13 +820,19 @@
       
       <ion-content style="--background: #f8fafc;">
         <div style="padding: 15px;">
-          <div style="display: flex; gap: 5px; margin-top: 10px; justify-content: center;">
+          <div style="display: flex; gap: 5px; margin-top: 6px; justify-content: center;">
             <div (click)="seleccionarModalidadGlobalAdmin('PRESENCIAL')" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid #003366;" [style.background]="modalidadGlobalAdmin === 'PRESENCIAL' ? '#003366' : 'white'" [style.color]="modalidadGlobalAdmin === 'PRESENCIAL' ? 'white' : '#003366'">Presencial</div>
             <div (click)="seleccionarModalidadGlobalAdmin('VIRTUAL')" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid #003366;" [style.background]="modalidadGlobalAdmin === 'VIRTUAL' ? '#003366' : 'white'" [style.color]="modalidadGlobalAdmin === 'VIRTUAL' ? 'white' : '#003366'">Virtual</div>
             <div (click)="seleccionarModalidadGlobalAdmin('AMBAS')" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 2px solid #003366;" [style.background]="modalidadGlobalAdmin === 'AMBAS' ? '#003366' : 'white'" [style.color]="modalidadGlobalAdmin === 'AMBAS' ? 'white' : '#003366'">Ambas</div>
           </div>
+
+          <div style="background: rgba(234, 179, 8, 0.14); border-left: 4px solid #EAB308; padding: 8px 12px; border-radius: 6px; margin-top: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 0.75rem; color: #003366; font-weight: 800;">
+              Regla institucional: Los sábados están bloqueados desde las 13:00 y solo admiten modalidad VIRTUAL (V).
+            </p>
+          </div>
           
-          <div style="margin-top: 20px; overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px;">
+          <div style="margin-top: 14px; overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px;">
             <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: center;">
               <thead>
                 <tr>
@@ -531,9 +845,19 @@
                   <td style="font-size: 0.7rem; font-weight: bold; padding: 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">{{ franja }}</td>
                   <td *ngFor="let dia of diassemana" 
                       (click)="seleccionarBloqueAdmin(dia, franja)"
-                      style="border: 1px solid #e2e8f0; cursor: pointer; padding: 5px; position: relative;">
-                    <div *ngIf="!horarioTemporalAdmin[dia + '-' + franja]" style="width: 100%; height: 35px; background: #f8fafc; border-radius: 6px;"></div>
-                    <div *ngIf="horarioTemporalAdmin[dia + '-' + franja]" style="width: 100%; height: 35px; background: #EAB308; color: #003366; font-weight: 900; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.8rem;">
+                      [style.cursor]="esBloqueSabadoBloqueado(dia, franja) ? 'not-allowed' : 'pointer'"
+                      style="border: 1px solid #e2e8f0; padding: 5px; position: relative;">
+                    
+                    <!-- Celda bloqueada (Sábado >= 13:00) -->
+                    <div *ngIf="esBloqueSabadoBloqueado(dia, franja)" class="celda-sabado-bloqueada" title="Sábado bloqueado desde las 13:00">
+                      <ion-icon name="lock-closed-outline" style="font-size: 0.9rem;"></ion-icon>
+                    </div>
+
+                    <!-- Celda libre -->
+                    <div *ngIf="!esBloqueSabadoBloqueado(dia, franja) && !horarioTemporalAdmin[dia + '-' + franja]" style="width: 100%; height: 35px; background: #f8fafc; border-radius: 6px;"></div>
+                    
+                    <!-- Celda asignada -->
+                    <div *ngIf="!esBloqueSabadoBloqueado(dia, franja) && horarioTemporalAdmin[dia + '-' + franja]" style="width: 100%; height: 35px; background: #EAB308; color: #003366; font-weight: 900; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.8rem;">
                       {{ horarioTemporalAdmin[dia + '-' + franja] === 'PRESENCIAL' ? 'P' : (horarioTemporalAdmin[dia + '-' + franja] === 'VIRTUAL' ? 'V' : 'P/V') }}
                     </div>
                   </td>

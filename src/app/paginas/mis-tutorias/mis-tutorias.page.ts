@@ -56,7 +56,6 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
   codigoIngresado: string = '';
   uniendose: boolean = false;
 
-  // Variables para búsqueda de docente al unirse por código/QR
   sedeUsuario: string = 'CUENCA';
   docentesExcel: string[] = [];
   docenteBuscado: string = '';
@@ -65,7 +64,6 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
   mostrarModalMiQR: boolean = false;
   codigoQRGenerado: string = '';
 
-  // Variables para la cámara web
   scanActive: boolean = false; 
   @ViewChild('videoElement', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
   canvasElement!: HTMLCanvasElement;
@@ -124,6 +122,78 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
     await this.cargarMisTutorias();
 
     this.docentesExcel = await this.dbService.obtenerDocentesDesdeExcel(this.sedeUsuario);
+  }
+
+  // ==========================================
+  // 🌟 PUNTO #1: FORMATO Y ESTILO DE TIPO DE TUTORÍA
+  // ==========================================
+  formatearTipoTutoria(tipo: string): string {
+    const limpio = String(tipo || 'CONSULTA').toUpperCase().trim();
+    if (limpio === 'PRACTICA') return 'PRÁCTICA';
+    return limpio;
+  }
+
+  obtenerEstiloTipoTutoria(tipo: string): { [key: string]: string } {
+    const limpio = String(tipo || 'CONSULTA').toUpperCase().trim();
+    if (limpio === 'PROCESO') {
+      return { background: '#10b981', color: '#ffffff' };
+    }
+    if (limpio === 'PRACTICA' || limpio === 'PRÁCTICA') {
+      return { background: '#0284c7', color: '#ffffff' };
+    }
+    if (limpio === 'INTENSIVA') {
+      return { background: '#f97316', color: '#ffffff' };
+    }
+    return { background: '#EAB308', color: '#003366' };
+  }
+
+  // ==========================================
+  // 🌟 PUNTO #6: TIMESTAMP PARA ORDENAMIENTO CRONOLÓGICO
+  // ==========================================
+  obtenerTimestampTutoria(fechaExacta: string, diaSemana: string, horaRango: string): number {
+    let horaInicio = 23;
+    let minInicio = 59;
+
+    const matchHora = String(horaRango || '').match(/(\d{1,2}):(\d{2})/);
+    if (matchHora) {
+      horaInicio = parseInt(matchHora[1], 10);
+      minInicio = parseInt(matchHora[2], 10);
+    }
+
+    const fechaStr = String(fechaExacta || '').trim();
+    if (fechaStr) {
+      // Formato ISO YYYY-MM-DD
+      const soloFecha = fechaStr.split('T')[0];
+      const partesISO = soloFecha.split('-').map(Number);
+      if (partesISO.length === 3 && !isNaN(partesISO[0]) && !isNaN(partesISO[1]) && !isNaN(partesISO[2])) {
+        return new Date(partesISO[0], partesISO[1] - 1, partesISO[2], horaInicio, minInicio, 0, 0).getTime();
+      }
+
+      // Formato texto español "20 de noviembre"
+      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      const matchTexto = fechaStr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/(\d{1,2})\s+de\s+([a-z]+)/);
+      if (matchTexto) {
+        const diaNum = parseInt(matchTexto[1], 10);
+        const mesIdx = meses.indexOf(matchTexto[2]);
+        if (mesIdx !== -1 && !isNaN(diaNum)) {
+          const ahora = new Date();
+          let anio = ahora.getFullYear();
+          const candidata = new Date(anio, mesIdx, diaNum, horaInicio, minInicio, 0, 0);
+          if (candidata.getTime() < ahora.getTime() - (180 * 24 * 60 * 60 * 1000)) {
+            candidata.setFullYear(anio + 1);
+          }
+          return candidata.getTime();
+        }
+      }
+    }
+
+    // Respaldo por día de la semana
+    const diaStr = String(diaSemana || '').trim();
+    if (diaStr && diaStr !== 'Por definir') {
+      return this.calcularProximaFechaDesdeHoy(diaStr, horaRango || '23:59').getTime();
+    }
+
+    return Number.MAX_SAFE_INTEGER;
   }
 
   // ==========================================
@@ -236,15 +306,21 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
 
         const codigoEval = res['codigo'] || 'SIN CÓDIGO';
         const cantidadUnidos = codigoEval !== 'SIN CÓDIGO' ? (conteoPorCodigo[codigoEval] - 1) : 0;
+        const diaTutoria = res['dia_elegido'] || res['dia'] || 'Por definir';
+        const horaTutoria = res['hora_elegida'] || res['hora'] || 'Por definir';
+        const fechaExacta = res['fecha_exacta'] || '';
+        const tipoTutoria = String(res['tipo_tutoria'] || res['tipo_flujo'] || 'CONSULTA').toUpperCase().trim();
 
         const tutoriaFormateada = {
           id: documento.id,
           materia: res['materia'],
           codigo: codigoEval,
-          dia: res['dia_elegido'] || res['dia'] || 'Por definir',
-          hora: res['hora_elegida'] || res['hora'] || 'Por definir',
-          fecha_exacta: res['fecha_exacta'] || '',
+          dia: diaTutoria,
+          hora: horaTutoria,
+          fecha_exacta: fechaExacta,
           modalidad: res['modalidad'] || 'Presencial',
+          tipo_tutoria: tipoTutoria,
+          timestampOrden: this.obtenerTimestampTutoria(fechaExacta, diaTutoria, horaTutoria),
           cantidadUnidos: cantidadUnidos > 0 ? cantidadUnidos : 0,
           color: colorEstado,
           estado: res['estado'],
@@ -260,6 +336,10 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
           this.programarRecordatorios(tutoriaFormateada);
         }
       }
+
+      // 🌟 PUNTO #6: Ordenar de la tutoría más cercana a la más lejana
+      this.tutorias.sort((a, b) => a.timestampOrden - b.timestampOrden);
+
     } catch (error) {
       console.error("Error cargando la base de datos:", error);
     } finally {
@@ -383,7 +463,7 @@ export class MisTutoriasPage implements OnInit, OnDestroy {
     const [hora, min] = horaStr.split(':').map(Number);
     const ahora = new Date();
     let fecha = new Date();
-    fecha.setHours(hora, min, 0, 0);
+    fecha.setHours(isNaN(hora) ? 23 : hora, isNaN(min) ? 59 : min, 0, 0);
 
     let dif = diaIndex - ahora.getDay();
     if (dif < 0 || (dif === 0 && fecha.getTime() < ahora.getTime())) dif += 7; 

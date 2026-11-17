@@ -84,9 +84,7 @@ export class TutorTutoriasPage implements OnInit {
   menuPerfilAbierto: boolean = false;
   eventoPerfil: any = null;
 
- // =========================================================
-  // 🌟 VARIABLES PUNTO #12: REGISTRO MANUAL ESPONTÁNEO
-  // =========================================================
+  // VARIABLES: REGISTRO MANUAL ESPONTÁNEO
   mostrarModalManual: boolean = false;
   guardandoManual: boolean = false;
   todosEstudiantes: any[] = [];
@@ -109,9 +107,8 @@ export class TutorTutoriasPage implements OnInit {
     tipo_derivacion: 'DECISIÓN PROPIA',
     docente: ''
   };
-  // =========================================================
-  // 🌟 VARIABLES PUNTO #6: REPROGRAMAR FECHA / HORA
-  // =========================================================
+
+  // VARIABLES: REPROGRAMAR FECHA / HORA
   mostrarModalReprogramar: boolean = false;
   guardandoReprogramacion: boolean = false;
   tutoriaAReprogramar: any = null;
@@ -148,7 +145,6 @@ export class TutorTutoriasPage implements OnInit {
   ngOnInit() { }
 
   async ionViewWillEnter() {
-    // 🌟 PUNTO #12: Ocultar pestaña Asistencia por defecto al estar en Tutorías
     this.tutorEstado.ocultarTabAsistencia();
 
     this.correoUsuario = (localStorage.getItem('correo') || '').toLowerCase().trim();
@@ -184,6 +180,78 @@ export class TutorTutoriasPage implements OnInit {
       this.mostrarGuiaTutor = true;
       localStorage.setItem('guia_tutor_vista', 'true'); 
     }
+  }
+
+  // ==========================================
+  // 🌟 PUNTO #1: FORMATO Y ESTILO DE TIPO DE TUTORÍA
+  // ==========================================
+  formatearTipoTutoria(tipo: string): string {
+    const limpio = String(tipo || 'CONSULTA').toUpperCase().trim();
+    if (limpio === 'PRACTICA') return 'PRÁCTICA';
+    return limpio;
+  }
+
+  obtenerEstiloTipoTutoria(tipo: string): { [key: string]: string } {
+    const limpio = String(tipo || 'CONSULTA').toUpperCase().trim();
+    if (limpio === 'PROCESO') {
+      return { background: '#10b981', color: '#ffffff' };
+    }
+    if (limpio === 'PRACTICA' || limpio === 'PRÁCTICA') {
+      return { background: '#0284c7', color: '#ffffff' };
+    }
+    if (limpio === 'INTENSIVA') {
+      return { background: '#f97316', color: '#ffffff' };
+    }
+    return { background: '#EAB308', color: '#003366' };
+  }
+
+  // ==========================================
+  // 🌟 PUNTO #6: TIMESTAMP PARA ORDENAMIENTO CRONOLÓGICO
+  // ==========================================
+  obtenerTimestampTutoria(fechaExacta: string, diaSemana: string, horaRango: string): number {
+    let horaInicio = 23;
+    let minInicio = 59;
+
+    const matchHora = String(horaRango || '').match(/(\d{1,2}):(\d{2})/);
+    if (matchHora) {
+      horaInicio = parseInt(matchHora[1], 10);
+      minInicio = parseInt(matchHora[2], 10);
+    }
+
+    const fechaStr = String(fechaExacta || '').trim();
+    if (fechaStr) {
+      // Formato ISO YYYY-MM-DD
+      const soloFecha = fechaStr.split('T')[0];
+      const partesISO = soloFecha.split('-').map(Number);
+      if (partesISO.length === 3 && !isNaN(partesISO[0]) && !isNaN(partesISO[1]) && !isNaN(partesISO[2])) {
+        return new Date(partesISO[0], partesISO[1] - 1, partesISO[2], horaInicio, minInicio, 0, 0).getTime();
+      }
+
+      // Formato texto español "20 de noviembre"
+      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      const matchTexto = fechaStr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/(\d{1,2})\s+de\s+([a-z]+)/);
+      if (matchTexto) {
+        const diaNum = parseInt(matchTexto[1], 10);
+        const mesIdx = meses.indexOf(matchTexto[2]);
+        if (mesIdx !== -1 && !isNaN(diaNum)) {
+          const ahora = new Date();
+          let anio = ahora.getFullYear();
+          const candidata = new Date(anio, mesIdx, diaNum, horaInicio, minInicio, 0, 0);
+          if (candidata.getTime() < ahora.getTime() - (180 * 24 * 60 * 60 * 1000)) {
+            candidata.setFullYear(anio + 1);
+          }
+          return candidata.getTime();
+        }
+      }
+    }
+
+    // Respaldo por día de la semana
+    const diaStr = String(diaSemana || '').trim();
+    if (diaStr && diaStr !== 'Por definir') {
+      return this.calcularProximaFecha(diaStr, horaRango || '23:59').getTime();
+    }
+
+    return Number.MAX_SAFE_INTEGER;
   }
 
   async verificarNotificaciones(correo: string, rol: string, sede: string) {
@@ -242,6 +310,7 @@ export class TutorTutoriasPage implements OnInit {
         if (estadoUpper === 'CONFIRMADA' || estadoUpper === 'ACEPTADA') colorEstado = '#34d399'; 
 
         const diaElegido = res['dia_elegido'] || res['dia'] || 'Por definir';
+        const horaElegida = res['hora_elegida'] || res['hora'] || 'Por definir';
         
         let fechaExacta = res['fecha_exacta'];
         if (!fechaExacta && diaElegido !== 'Por definir') {
@@ -249,15 +318,17 @@ export class TutorTutoriasPage implements OnInit {
         }
 
         const esInvitadoFlag = Boolean(res['esInvitado'] || res['es_invitado']);
+        const tipoTutoria = String(res['tipo_tutoria'] || res['tipo_flujo'] || 'CONSULTA').toUpperCase().trim();
 
         const tutoriaFormateada: any = {
           id: documento.id,
           materia: res['materia'],
           codigo: res['codigo'] || res['codigo_tutoria'] || 'SIN CÓDIGO',
           dia: diaElegido,
-          hora: res['hora_elegida'] || res['hora'] || 'Por definir',
+          hora: horaElegida,
           duracion_horas: res['duracion_horas'] || 1,
           fecha_exacta: fechaExacta || '',
+          timestampOrden: this.obtenerTimestampTutoria(fechaExacta || '', diaElegido, horaElegida),
           modalidad: res['modalidad'] || 'Presencial', 
           color: colorEstado,
           estado: res['estado'],
@@ -266,8 +337,8 @@ export class TutorTutoriasPage implements OnInit {
           nombreEstudiante: res['nombreEstudiante'],
           correoEstudiante: res['correoEstudiante'],
           tipoDerivacion: res['tipo_derivacion'] || 'DECISIÓN PROPIA',
-          tipo_tutoria: res['tipo_tutoria'] || 'CONSULTA',
-          tipo_flujo: res['tipo_flujo'] || 'CONSULTA',
+          tipo_tutoria: tipoTutoria,
+          tipo_flujo: res['tipo_flujo'] || tipoTutoria,
           fecha_agendamiento: res['fecha_agendamiento'] || res['fecha_solicitud'] || null,
           fecha_modificacion_tutor: res['fecha_modificacion_tutor'] || null,
           esInvitado: esInvitadoFlag,
@@ -295,6 +366,9 @@ export class TutorTutoriasPage implements OnInit {
 
       this.tutoriasPorImpartir = [...Array.from(tutoriasAgrupadas.values()), ...tutoriasIndividuales];
 
+      // 🌟 PUNTO #6: Ordenar de la tutoría más cercana a la más lejana
+      this.tutoriasPorImpartir.sort((a, b) => a.timestampOrden - b.timestampOrden);
+
     } catch (error) {
       console.error("Error cargando la agenda del tutor:", error);
     } finally {
@@ -303,7 +377,6 @@ export class TutorTutoriasPage implements OnInit {
     }
   }
 
-  // 🌟 PUNTO #12: Habilita la pestaña Asistencia en tabs-tutor y navega con los datos de la tutoría
   irATomarAsistencia(tutoria: any) {
     this.tutorEstado.habilitarTabAsistencia();
     this.router.navigate(['/tabs-tutor/asistencia'], {
@@ -311,8 +384,8 @@ export class TutorTutoriasPage implements OnInit {
     });
   }
 
-// =========================================================
-  // 🌟 MÉTODOS PUNTO #12: REGISTRO MANUAL ESPONTÁNEO
+  // =========================================================
+  // REGISTRO MANUAL ESPONTÁNEO
   // =========================================================
   async abrirModalManual() {
     const diasMap = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
@@ -339,7 +412,6 @@ export class TutorTutoriasPage implements OnInit {
 
     const sedeTutor = (this.datosTutorActual?.sede || localStorage.getItem('sede') || 'CUENCA').toUpperCase();
 
-    // Cargamos estudiantes y docentes desde Excel en paralelo si aún no están en memoria
     const promesas: Promise<any>[] = [];
 
     if (this.todosEstudiantes.length === 0) {
@@ -467,7 +539,6 @@ export class TutorTutoriasPage implements OnInit {
           tipoDerivacion: payloadReserva.tipo_derivacion,
           alumnosExtra: []
         };
-        // Esperamos a que Ionic cierre la animación del modal antes de cambiar de ruta
         setTimeout(() => {
           this.irATomarAsistencia(tutoriaMaster);
         }, 180);
@@ -482,7 +553,7 @@ export class TutorTutoriasPage implements OnInit {
   }
 
   // =========================================================
-  // 🌟 MÉTODOS PUNTO #6: REPROGRAMAR FECHA / HORA + NOTIFICACIÓN
+  // REPROGRAMAR FECHA / HORA + NOTIFICACIÓN
   // =========================================================
   abrirModalReprogramar(tutoria: any) {
     this.tutoriaAReprogramar = tutoria;
@@ -710,7 +781,6 @@ export class TutorTutoriasPage implements OnInit {
           correoTutor: 'POR_ASIGNAR', 
           notas_admin: 'Cancelada por el segundo tutor asignado. Requiere asignación manual.'
         });
-        // 🌟 PUNTO #11: Notificar al estudiante que Coordinación gestionará la reasignación
         if (tutoria.correoEstudiante) {
           await this.dbService.crearNotificacion({
             titulo: '⚠️ Reasignación en Proceso',
@@ -736,7 +806,6 @@ export class TutorTutoriasPage implements OnInit {
             estado: 'PENDIENTE'
           });
 
-          // 🌟 PUNTO #11: Disparadores de notificación al reasignar automáticamente (Estudiante + Nuevo Tutor)
           if (tutoria.correoEstudiante) {
             await this.dbService.crearNotificacion({
               titulo: '🔄 Tutor Reasignado Automáticamente',
